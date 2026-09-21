@@ -84,6 +84,124 @@ class MetaAdsService
         return $hash;
     }
 
+    // ------------------------------------------------------------------ video
+
+    /**
+     * Muat naik video, pulangkan video_id.
+     *
+     * BENTUK PAYLOAD BELUM DISAHKAN TERHADAP DOKUMENTASI RASMI META.
+     * developers.facebook.com tidak boleh dicapai dari persekitaran
+     * pembangunan ini, jadi bentuk di bawah datang dari sumber sekunder.
+     * Peraturan mutlak #3 mengehadkan kerosakannya: semua dibuat PAUSED, jadi
+     * bentuk yang salah gagal dengan ralat yang kelihatan semasa Approve —
+     * sebelum satu sen dibelanjakan. Sahkan dengan satu video sebenar sebelum
+     * mempercayainya.
+     */
+    public function uploadVideo(string $absolutePath): string
+    {
+        $filename = basename($absolutePath);
+
+        $response = $this->request()
+            ->timeout((int) config('dynoads.video.upload_timeout', 300))
+            ->attach('source', file_get_contents($absolutePath), $filename)
+            ->post($this->url("{$this->adAccountId}/advideos"), [
+                'name' => $filename,
+                'access_token' => $this->token,
+            ]);
+
+        $id = data_get($this->unwrap($response, "{$this->adAccountId}/advideos"), 'id');
+
+        if (! $id) {
+            throw new MetaApiException('Meta tidak pulangkan video_id untuk video yang dimuat naik.');
+        }
+
+        return (string) $id;
+    }
+
+    /**
+     * Tunggu Meta siap memproses video.
+     *
+     * Ini bukan kemewahan. Pemprosesan video TIDAK SEGERAK: /advideos
+     * memulangkan id serta-merta, tetapi creative yang dibuat sebelum
+     * pemprosesan selesai ditolak. Tanpa menunggu, iklan video akan gagal
+     * secara rawak bergantung pada saiz fail dan beban Meta — kegagalan yang
+     * kelihatan seperti pepijat yang tidak boleh diulang.
+     *
+     * @return array{status:string, thumbnail:?string}
+     */
+    public function waitForVideo(string $videoId, ?int $timeoutSeconds = null, ?int $pollSeconds = null): array
+    {
+        $timeout = $timeoutSeconds ?? (int) config('dynoads.video.ready_timeout_seconds', 180);
+        $poll = max(1, $pollSeconds ?? (int) config('dynoads.video.poll_seconds', 5));
+        $deadline = time() + $timeout;
+
+        do {
+            $body = $this->unwrap(
+                $this->request()->get($this->url($videoId), [
+                    'fields' => 'status,picture',
+                    'access_token' => $this->token,
+                ]),
+                $videoId
+            );
+
+            $status = (string) (data_get($body, 'status.video_status') ?: data_get($body, 'status') ?: 'processing');
+
+            if ($status === 'ready') {
+                return ['status' => $status, 'thumbnail' => data_get($body, 'picture')];
+            }
+
+            if ($status === 'error') {
+                throw new MetaApiException('Meta gagal memproses video ini. Cuba video lain atau saiz yang lebih kecil.');
+            }
+
+            if (time() >= $deadline) {
+                break;
+            }
+
+            sleep($poll);
+        } while (true);
+
+        throw new MetaApiException(
+            "Video masih diproses oleh Meta selepas {$timeout} saat. Cuba lagi sekejap — video itu tidak hilang."
+        );
+    }
+
+    /**
+     * Creative video dengan butang WhatsApp.
+     *
+     * Gunakan video_data, BUKAN link_data. Meta menolak video_id di dalam
+     * link_data (error_subcode 1443050) dengan mesej yang tidak menyebut
+     * puncanya langsung.
+     *
+     * Thumbnail datang dari Meta sendiri (medan `picture` pada video) kerana
+     * pelayan ini tiada ffmpeg untuk mengeluarkan frame.
+     */
+    public function createVideoCreative(string $name, string $videoId, string $message, ?string $thumbnailUrl = null): string
+    {
+        $videoData = array_filter([
+            'video_id' => $videoId,
+            'message' => $message,
+            'image_url' => $thumbnailUrl,
+            'call_to_action' => [
+                'type' => config('dynoads.ad.call_to_action_type'),
+                'value' => [
+                    'link' => $this->whatsappLink(),
+                    'app_destination' => 'WHATSAPP',
+                ],
+            ],
+        ]);
+
+        $payload = [
+            'name' => $name,
+            'object_story_spec' => json_encode([
+                'page_id' => $this->pageId,
+                'video_data' => $videoData,
+            ]),
+        ];
+
+        return $this->createObject("{$this->adAccountId}/adcreatives", $payload);
+    }
+
     // --------------------------------------------------------------- campaign
 
     /** Campaign CBO — bajet di peringkat campaign, sentiasa PAUSED. */

@@ -12,8 +12,10 @@ class AdVariant extends Model
     use HasFactory;
 
     protected $fillable = [
-        'ad_set_id', 'position', 'source_type', 'poster_job_id', 'source_post_id', 'image_path', 'caption',
-        'meta_image_hash', 'meta_campaign_id', 'meta_adset_id',
+        'ad_set_id', 'position', 'source_type', 'media_type', 'poster_job_id', 'source_post_id',
+        'image_path', 'video_path', 'caption',
+        'meta_image_hash', 'meta_video_id', 'meta_thumbnail_url',
+        'meta_campaign_id', 'meta_adset_id',
         'meta_creative_id', 'meta_ad_id', 'status', 'last_error',
     ];
 
@@ -29,6 +31,13 @@ class AdVariant extends Model
         return $this->belongsTo(AdSet::class);
     }
 
+    /**
+     * Poster daripada enjin poster yang sudah dibuang.
+     *
+     * Jadual poster_jobs dan baris source_type=poster dikekalkan sebagai
+     * sejarah: campaign itu betul-betul berjalan dan angkanya masih bermakna
+     * untuk perbandingan. Tiada poster baharu boleh dibuat lagi.
+     */
     public function posterJob(): BelongsTo
     {
         return $this->belongsTo(PosterJob::class);
@@ -37,6 +46,17 @@ class AdVariant extends Model
     public function isPoster(): bool
     {
         return $this->source_type === 'poster';
+    }
+
+    public function isVideo(): bool
+    {
+        return $this->media_type === 'video';
+    }
+
+    /** Fail sebenar untuk variant ini, tidak kira jenisnya. */
+    public function mediaPath(): ?string
+    {
+        return $this->isVideo() ? $this->video_path : $this->image_path;
     }
 
     /**

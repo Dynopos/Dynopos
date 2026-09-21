@@ -1,7 +1,9 @@
 <?php
 
-use App\Livewire\Posters\Create;
+use App\Livewire\AdSets\Create;
+use App\Support\Media;
 use App\Support\Uploads;
+use Illuminate\Http\UploadedFile;
 
 /**
  * Peraturan validasi yang lebih longgar daripada php.ini adalah janji yang app
@@ -33,21 +35,39 @@ it('mengesan bila had terlalu ketat untuk gambar telefon', function () {
     expect(Uploads::tooTightForPhonePhotos())->toBe(Uploads::maxKilobytes() < 4096);
 });
 
-it('had validasi tidak pernah melebihi had PHP', function () {
-    $rules = (new ReflectionMethod(Create::class, 'rules'))
-        ->invoke(app(Create::class));
+it('had video tidak pernah melebihi had PHP', function () {
+    // config boleh kata 100 MB, tetapi PHP yang menentukan. Menjanjikan lebih
+    // daripada yang pelayan benarkan bermakna peniaga menunggu muat naik yang
+    // memang tidak akan menjadi.
+    expect(Uploads::maxKilobytes(Media::maxVideoKilobytes()))
+        ->toBeLessThanOrEqual(Uploads::maxKilobytes(PHP_INT_MAX));
+});
 
-    preg_match('/max:(\d+)/', $rules['product'], $m);
+it('fail yang terlalu besar ditolak dengan sebab dalam Bahasa Melayu', function () {
+    $besar = UploadedFile::fake()->create('video.mp4', Uploads::maxKilobytes(Media::maxVideoKilobytes()) + 1024);
 
-    expect((int) $m[1])->toBeLessThanOrEqual(Uploads::maxKilobytes());
+    expect(Media::reject($besar))
+        ->toContain('terlalu besar')
+        ->toContain('video.mp4')
+        ->not->toContain('failed to upload');
+});
+
+it('jenis fail yang tidak boleh diiklankan ditolak awal', function () {
+    expect(Media::reject(UploadedFile::fake()->create('katalog.pdf', 10)))
+        ->toContain('bukan gambar atau video');
+});
+
+it('gambar dan video kedua-duanya diterima', function () {
+    expect(Media::reject(UploadedFile::fake()->image('kedai.jpg')))->toBeNull()
+        ->and(Media::reject(UploadedFile::fake()->create('kedai.mp4', 200)))->toBeNull();
 });
 
 it('kegagalan muat naik dijelaskan dalam Bahasa Melayu', function () {
     $messages = (new ReflectionMethod(Create::class, 'messages'))
         ->invoke(app(Create::class));
 
-    expect($messages)->toHaveKey('product.uploaded')
-        ->and($messages['product.uploaded'])
+    expect($messages)->toHaveKey('upload.*.uploaded')
+        ->and($messages['upload.*.uploaded'])
         ->toContain('gagal dimuat naik')
         ->toContain(Uploads::maxLabel())
         ->not->toContain('failed to upload');

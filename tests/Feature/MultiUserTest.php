@@ -92,7 +92,7 @@ it('anak ad set mengikut pemilikan induknya', function () {
 // ------------------------------------------------------------------ route
 
 it('pelawat yang belum masuk dihantar ke skrin masuk', function () {
-    foreach (['/', '/buat', '/posting', '/poster', '/sambung'] as $url) {
+    foreach (['/', '/buat', '/posting', '/sambung'] as $url) {
         $this->get($url)->assertRedirect(route('masuk'));
     }
 });

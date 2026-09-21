@@ -75,71 +75,26 @@ return [
         'max_daily_sen' => 20000,      // RM200/hari
     ],
 
-    /*
-    |--------------------------------------------------------------------------
-    | Enjin poster
-    |--------------------------------------------------------------------------
-    |
-    | Peraturan mutlak #7: teks pada poster TIDAK PERNAH dijana oleh model imej.
-    | AI hanya menghasilkan latar/suasana. Produk peniaga kekal gambar sebenar
-    | mereka — potong latar, bukan jana produk baharu. Semua teks dari HTML,
-    | supaya ejaan Melayu sentiasa betul.
-    |
-    */
-    'poster' => [
+    'creative' => [
+        // Gambar dan video dikira sama — satu media = satu campaign.
+        'max_creatives' => 4,
+        'min_creatives' => 1,
         'size' => 1080,
-        'disk' => 'public',
-        'path' => 'posters',
-        'cutouts' => 'cutouts',
-        'backgrounds' => 'backgrounds',
 
-        // Skrip Node yang memandu Playwright.
-        'renderer' => base_path('resources/poster/render.mjs'),
-        'render_timeout' => 90,
-
-        // Pembuang latar gambar produk. Kosongkan 'endpoint' untuk matikan —
-        // gambar akan digunakan seadanya dan poster tetap terhasil.
-        'remover' => [
-            'driver' => env('DYNOADS_REMOVER_DRIVER', 'gd'), // gd|http|none
-            'endpoint' => env('DYNOADS_REMOVER_ENDPOINT'),
-            'api_key' => env('DYNOADS_REMOVER_KEY'),
-            'api_key_header' => env('DYNOADS_REMOVER_KEY_HEADER', 'X-Api-Key'),
-            'file_field' => env('DYNOADS_REMOVER_FILE_FIELD', 'image_file'),
-            'timeout' => 60,
-        ],
-
-        // Penjana latar AI. 'stock' menghasilkan latar secara tempatan dengan GD
-        // — tiada API, tiada kos, sentiasa berfungsi. Tukar ke 'ai' bila ada
-        // pembekal. Kegagalan AI jatuh balik ke stock, bukan meletup.
-        'background' => [
-            'driver' => env('DYNOADS_BG_DRIVER', 'stock'), // stock|ai
-            'endpoint' => env('DYNOADS_BG_ENDPOINT'),
-            'api_key' => env('DYNOADS_BG_KEY'),
-            'api_key_header' => env('DYNOADS_BG_KEY_HEADER', 'Authorization'),
-            'model' => env('DYNOADS_BG_MODEL'),
-            'timeout' => 120,
-
-            // Setiap prompt AI diakhiri dengan ini. Model imej tidak boleh
-            // dipercayai untuk mengeja Melayu — jadi kita minta ia jangan cuba.
-            'prompt_suffix' => 'Photographic product-scene background only. '
-                .'Absolutely no text, no letters, no words, no logos, no signage, '
-                .'no watermarks, no people. Empty space in the centre for a product. '
-                .'Soft natural light, shallow depth of field.',
-
-            'moods' => [
-                'kedai' => 'clean modern Malaysian shop counter, warm morning light, wooden surface',
-                'kafe' => 'cosy cafe counter, timber and matte black, soft window light',
-                'studio' => 'seamless studio backdrop, gentle gradient, soft shadow beneath',
-                'meja' => 'tidy office desk surface, neutral tones, daylight from the side',
-                'dapur' => 'bright stainless kitchen prep surface, clean and uncluttered',
-            ],
-        ],
+        'image_mimes' => ['jpg', 'jpeg', 'png', 'webp'],
+        'video_mimes' => ['mp4', 'mov', 'm4v'],
     ],
 
-    'creative' => [
-        'max_images' => 4,
-        'min_images' => 1,
-        'size' => 1080,
+    'video' => [
+        // Meta memproses video secara tidak segerak. Creative yang dibuat
+        // sebelum pemprosesan siap ditolak, jadi app menunggu.
+        'ready_timeout_seconds' => 180,
+        'poll_seconds' => 5,
+        'upload_timeout' => 300,
+
+        // Had saiz video dalam kilobait. Ia tidak bermakna apa-apa kalau
+        // upload_max_filesize dalam php.ini lebih ketat — lihat Uploads.
+        'max_kilobytes' => 102400,   // 100 MB
     ],
 
     /*

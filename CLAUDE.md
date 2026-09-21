@@ -14,8 +14,12 @@ Pengguna pertama: DynoPOS (pemilik repo).
 ## Status
 - **Fasa 0 — SIAP.** Borang Create → Review → Run → Dashboard, campaign PAUSED, insights.
 - **Fasa 1 — SIAP** (PR #2): guna posting Page sedia ada sebagai creative.
-- Fasa 2 seterusnya: **satu gambar, banyak hook**. Jangan mula fasa lain sebelum ni stabil.
-- Enjin poster dan latar AI **dibatalkan** — lihat nota arah di bawah.
+- **Fasa 7a — SIAP** (PR #5): multi-user, `fb_connections`, pengasingan data.
+  App boleh terima peniaga kedua tanpa menunggu App Review.
+- **Fasa 3 (Video) — SIAP, BELUM DISAHKAN DI META.** Gambar dan video, sehingga empat.
+  Lihat amaran dalam Fasa 3 — lancar satu iklan video sebenar sebelum menjualnya.
+- **Enjin poster dan latar AI — DIBUANG.** Kod dipadam; data dikekalkan. Lihat nota arah.
+- Fasa 2 seterusnya: **rekod `hook`** — sudut copy mana yang menang, bukan hanya nombor.
 - Satu PR satu fasa. Jangan gabung.
 
 ## Stack (jangan tukar tanpa tanya)
@@ -69,12 +73,17 @@ Semua duduk dalam `config/dynoads.php`. Dari 150+ campaign DynoPOS, kos/lead ~RM
 app/Services/MetaAdsService.php            Graph API (tiada method update* — sengaja)
 app/Services/CaptionService.php            caption AI
 app/Services/AdLauncher.php                orkestra DB ⇄ Meta
-app/Services/ImageProcessor.php            crop 1080×1080
-app/Services/PagePostService.php           (Fasa 1 — senarai posting Page)
-app/Services/VideoUploader.php             (Fasa 3 — muat naik video ke Meta)
+app/Services/ImageProcessor.php            crop 1080×1080 (gambar sahaja)
+app/Services/PagePostService.php           senarai posting Page — BACA SAHAJA
+app/Services/Meta/MetaCredentials.php      kredential siapa yang digunakan
 app/Services/Chat/ChatService.php          (Fasa 4)
 app/Services/SplitTestService.php          (Fasa 5)
-app/Livewire/AdSets/{Create,Review,Run,Dashboard}.php
+app/Support/Media.php                      gambar atau video, had saiz
+app/Support/Phone.php                      nombor Malaysia → 60XXXXXXXXX
+app/Livewire/AdSets/{Create,Review,Run,Dashboard,ExistingPosts}.php
+app/Livewire/Auth/{Login,Register}.php
+app/Livewire/Settings/Connect.php
+resources/views/components/creative-media.blade.php   gambar atau video
 config/dynoads.php                         semua setting Meta
 docs/dyno-ads-spec-v0.2.md
 ```
@@ -143,8 +152,14 @@ bukan meninggalkan tesis produk — ia menjadikan laluan terbaik itu satu-satuny
 **Apa yang diterima sebagai kos.** Halangan "tiada gambar cantik" kembali; sebahagian
 peniaga tidak akan beriklan kerana itu. Keputusan ini dibuat dengan sedar.
 
-Kod poster sedia ada (`app/Services/Poster/*`, `resources/poster/`, `poster_jobs`) kekal
-dalam repo buat masa ini supaya set iklan lama tidak pecah. Ia tidak dibangunkan lagi.
+**Kod itu kini betul-betul dipadam** (21 Sept 2026): `app/Services/Poster/`,
+`app/Livewire/Posters/`, `resources/poster/`, `resources/views/posters/`,
+`PosterServiceProvider`, blok config `poster`, dan kebergantungan `playwright` dalam
+package.json. Ada test yang gagal kalau mana-mana daripadanya kembali.
+
+Yang **dikekalkan** ialah datanya: jadual `poster_jobs` dan baris `source_type=poster`.
+Campaign itu betul-betul berjalan; angkanya masih bermakna untuk perbandingan Fasa 5.
+Memadam data bukan sebahagian daripada keputusan ini.
 
 ---
 
@@ -158,7 +173,7 @@ app jana satu caption untuk setiap satu, satu campaign setiap satu, yang menang 
 — **sudah terbina sejak Fasa 0**. Yang tiada hanyalah ingatan: Dashboard boleh kata
 "Creative #2 menang", tetapi tiada apa merekod bahawa #2 itu video dengan sudut bantahan.
 
-Tanpa dua lajur ini, setiap set iklan bermula dari kosong. Dengan ia, Fasa 5 boleh
+Tanpa lajur ini, setiap set iklan bermula dari kosong. Dengan ia, Fasa 5 boleh
 mengumpul merentas kempen: *"video menang 6 daripada 8 kali untuk bisnes anda"*.
 
 **Had yang perlu difahami:** setiap ujian mengubah media DAN caption serentak, jadi satu
@@ -169,9 +184,9 @@ merentas 50 set iklan, corak yang berulang tetap bermakna walaupun satu-satu uji
 ```
 Baca CLAUDE.md. Laksanakan FASA 2 sahaja.
 
-1. Migration: ad_variants tambah `hook` (string, nullable) dan `media_type`
-   (image|video, default image). JANGAN muatkan media_type ke dalam source_type —
-   keduanya ortogonal; posting sedia ada pun boleh jadi video.
+1. Migration: ad_variants tambah `hook` (string, nullable).
+   (`media_type` SUDAH ADA — ditambah bersama Fasa 3. Ia ortogonal dengan
+   source_type; posting sedia ada pun boleh jadi video.)
 2. CaptionService::generate() pulangkan {caption, hook} untuk setiap sudut, bukan
    string sahaja. Prompt sudah menyenaraikan lima sudut — namakannya dalam respons
    JSON supaya app boleh simpan yang mana dipakai.
@@ -186,8 +201,26 @@ Baca CLAUDE.md. Laksanakan FASA 2 sahaja.
 
 ---
 
-# FASA 3 — Video
-**Matlamat:** peniaga muat naik video sendiri, atau gambar dan video sekali.
+# FASA 3 — Video (SIAP — BELUM DISAHKAN DI META)
+
+> **Bentuk payload video belum disahkan terhadap dokumentasi rasmi Meta.**
+> `developers.facebook.com` tidak boleh dicapai dari persekitaran pembangunan, jadi
+> bentuk yang dilaksanakan datang dari sumber sekunder. Peraturan mutlak #3
+> mengehadkan kerosakannya: semua dibuat PAUSED, jadi bentuk yang salah gagal dengan
+> ralat yang kelihatan semasa Approve — sebelum satu sen dibelanjakan.
+>
+> **Sebelum menjual ciri ini: lancar satu iklan video sebenar hingga ACTIVE.**
+
+Apa yang dilaksanakan:
+- `MetaAdsService::uploadVideo()` → `POST /act_x/advideos`
+- `MetaAdsService::waitForVideo()` → poll `status.video_status` sehingga `ready`
+- `MetaAdsService::createVideoCreative()` → `object_story_spec.video_data`
+- Thumbnail diambil dari medan `picture` Meta sendiri (pelayan tiada ffmpeg).
+  Ia ditapis keluar bila tiada, bukan dihantar sebagai null. Sama ada Meta
+  benar-benar MEWAJIBKANnya masih belum disahkan.
+- Video TIDAK dipotong persegi — memaksa 1:1 memotong kepala orang dalam video menegak.
+
+**Matlamat asal:** peniaga muat naik video sendiri, atau gambar dan video sekali.
 
 **Ini bukan "satu lagi jenis fail".** Video mengubah tiga perkara asas, dan setiap satu
 boleh gagal sendiri:

@@ -42,8 +42,8 @@
                 };
             @endphp
             <div class="card flex gap-3 p-3">
-                <img src="{{ Storage::disk('public')->url($variant->image_path) }}" alt=""
-                     class="h-[72px] w-[72px] shrink-0 rounded-xl border border-current/10 object-cover">
+                <x-creative-media :variant="$variant"
+                    class="h-[72px] w-[72px] shrink-0 rounded-xl border border-current/10 object-cover" />
                 <div class="min-w-0 flex-1">
                     <div class="flex items-center gap-2">
                         <span class="text-sm font-bold">Iklan #{{ $variant->position }}</span>

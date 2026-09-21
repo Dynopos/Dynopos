@@ -39,8 +39,8 @@
         @foreach ($variants as $variant)
             @php $cpl = $variant->costPerLeadSen(); @endphp
             <div class="card flex gap-3 p-3 {{ $best && $best->is($variant) ? 'ring-1 ring-dyno-purple/50' : '' }}">
-                <img src="{{ Storage::disk('public')->url($variant->image_path) }}" alt=""
-                     class="h-16 w-16 shrink-0 rounded-xl border border-current/10 object-cover">
+                <x-creative-media :variant="$variant"
+                    class="h-16 w-16 shrink-0 rounded-xl border border-current/10 object-cover" />
                 <div class="min-w-0 flex-1">
                     <div class="flex items-center gap-2">
                         <span class="text-sm font-bold">Iklan #{{ $variant->position }}</span>
