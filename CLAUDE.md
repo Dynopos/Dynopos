@@ -101,20 +101,20 @@ Baca CLAUDE.md dan docs/dyno-ads-spec-v0.2.md §4B. Laksanakan FASA 1 sahaja.
      reactions.summary(true), comments.summary(true). Tapis posting bergambar sahaja.
    - Cache 10 minit. Paging cursor.
    - PERATURAN 13: tiada method yang menulis, memadam atau mengubah posting. Baca sahaja.
-3. MetaAdsService::createAdFromPost(adsetId, name, pageId, postId):
+3. MetaAdsService::createCreativeFromPost(name, postId) — pulangkan creative id:
    - creative guna object_story_id = "{page_id}_{post_id}"
    - cuba hantar call_to_action WHATSAPP_MESSAGE bersamanya
    - kalau Meta tolak (tangkap error code/subcode), jatuh secara automatik ke laluan kedua:
-     salin gambar + mesej posting jadi creative baru (guna createAd sedia ada), dan
+     salin gambar + mesej posting jadi creative baru (guna createCreative sedia ada), dan
      rekod dalam auto_actions bahawa fallback digunakan supaya user tahu like/komen
      TIDAK akan terkumpul pada posting asal.
 4. Livewire skrin "Guna posting sedia ada": grid posting (gambar, petikan mesej, tarikh,
    bilangan reaksi/komen), tick 2–4, pilih kawasan + bajet, lalu guna AdLauncher sedia ada.
-   AdLauncher::launch() kena kenal source_type dan panggil createAdFromPost bila perlu.
+   AdLauncher::createOne() kena kenal source_type dan panggil createCreativeFromPost bila perlu.
 5. Skrin Create sedia ada dapat pilihan di atas: [Poster/gambar baru] [Posting sedia ada].
 6. Amaran satu baris di skrin pilih: "Posting yang naik secara organik belum tentu murah
    kosnya sebagai iklan — sebab tu kita tetap split test."
-7. Test Pest (Http::fake): listPosts memparse reaksi/komen betul; createAdFromPost hantar
+7. Test Pest (Http::fake): listPosts memparse reaksi/komen betul; createCreativeFromPost hantar
    object_story_id dengan format {page}_{post}; fallback berlaku bila Meta pulangkan ralat
    CTA dan direkod dalam auto_actions; PagePostService tiada panggilan POST/DELETE langsung.
 ```
@@ -201,7 +201,7 @@ Baca spec §3. Laksanakan FASA 4.
 5. Skrin sahkan sebelum lancar: objektif, produk, destinasi, bilangan creative, bajet×hari,
    HAD MAKSIMUM, lokasi, audiens. Had maksimum dikuatkuasakan di Meta juga
    (tarikh tamat / lifetime budget), bukan sekadar dipapar.
-6. Dari brief disahkan → creative (poster atau posting sedia ada) → AdLauncher::launch()
+6. Dari brief disahkan → creative (poster atau posting sedia ada) → AdLauncher::createAll()
    PAUSED → skrin Run sedia ada.
 7. Ayat tetap di bawah kotak chat: "AI boleh buat silap — anda sahkan sendiri sebelum
    apa-apa duit dibelanjakan."
