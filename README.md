@@ -12,6 +12,7 @@ Token duduk dalam `.env`. Fasa 1 (guna posting sedia ada) hingga Fasa 9 diterang
 
 ```
 /buat        Upload 1–4 gambar → masalah → tawaran → telefon → kawasan → bajet
+/posting     Pilih 2–4 posting Page sedia ada → kawasan → bajet → campaign PAUSED
 /semak/{id}  Caption AI (boleh edit) + pratonton → Approve → campaign dibuat PAUSED
 /run/{id}    Butang RUN SEMUA → campaign/adset/ad jadi ACTIVE. Pause per iklan.
 /dashboard/{id}  Spend, lead WhatsApp, kos/lead setiap iklan + rekod tindakan
@@ -205,9 +206,36 @@ dimuat naik. Tiada muat turun, tiada muat naik semula.
 Poster **disalin** ke folder set iklan, bukan dirujuk. Poster boleh dijana semula
 atau dipadam kemudian; creative iklan mesti kekal seperti masa ia dilancarkan.
 
-`ad_variants.source_type` merekod asal setiap creative (`upload` atau `poster`,
-dan `existing_post` menyusul pada Fasa 1) supaya laporan Fasa 5 boleh
-membandingkan prestasi antara keduanya.
+`ad_variants.source_type` merekod asal setiap creative (`upload`, `poster` atau
+`existing_post`) supaya laporan Fasa 5 boleh membandingkan prestasi antara
+ketiga-tiganya.
+
+## Guna posting sedia ada
+
+`/posting` menyenaraikan posting bergambar dari Page anda — gambar, petikan teks,
+tarikh, jumlah reaksi dan komen. Tick 2–4, pilih kawasan dan bajet, dan setiap
+posting jadi satu campaign PAUSED seperti biasa.
+
+Creative dibina dengan `object_story_id`, bukan `object_story_spec`. Bezanya
+penting kepada peniaga: like, komen dan share terkumpul pada posting asal dia,
+jadi bukti sosial tidak berpecah merentas empat iklan asing.
+
+Butang WhatsApp di atas posting sedia ada tidak diterima oleh setiap gabungan
+objektif dan format, dan Meta tidak mendokumenkan dengan jelas yang mana. Bila
+ia ditolak, app jatuh secara automatik ke laluan kedua: gambar dan teks posting
+yang sudah disalin semasa pemilihan digunakan sebagai creative biasa. Iklan tetap
+jalan — cuma engagement tinggal pada iklan itu sendiri, bukan pada posting asal.
+Setiap kali ini berlaku ia direkod dalam `auto_actions` sebagai
+`post_creative_fallback`, berserta ayat yang menjelaskan kesannya, supaya peniaga
+tahu tanpa perlu bertanya.
+
+**Peraturan 13:** `PagePostService` hanya membaca. Ia tiada satu pun method yang
+menulis, memadam atau mengubah posting, dan ada ujian yang membaca kod sumber
+fail itu untuk menguatkuasakannya.
+
+Amaran yang dipapar pada skrin itu kekal penting: posting yang naik secara
+organik belum tentu murah kosnya sebagai iklan. Organik diedar kepada peminat
+sedia ada; iklan diedar kepada orang asing. Sebab tu ia tetap di-split test.
 
 ## Ayat pra-isi WhatsApp
 

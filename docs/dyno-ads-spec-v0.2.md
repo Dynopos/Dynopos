@@ -71,8 +71,10 @@ Tiada poster, tiada caption baru, tiada permission baru.
   `id, message, full_picture, permalink_url, created_time, shares,
   reactions.summary(true), comments.summary(true)`. Posting bergambar sahaja.
   Cache 10 minit, paging cursor. **Baca sahaja** — tiada POST/DELETE (peraturan 13).
-- `MetaAdsService::createAdFromPost()` — creative guna
+- `MetaAdsService::createCreativeFromPost($name, $postId)` — creative guna
   `object_story_id = "{page_id}_{post_id}"` dengan CTA `WHATSAPP_MESSAGE`.
+  Ia memulangkan creative id; `AdLauncher` memanggil `createAd()` selepasnya,
+  sama seperti laluan gambar biasa.
   Kalau Meta tolak, jatuh ke laluan kedua: salin gambar + mesej jadi creative
   baru, dan rekod dalam `auto_actions` supaya user tahu like/komen **tidak**
   akan terkumpul pada posting asal.
