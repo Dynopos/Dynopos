@@ -17,7 +17,7 @@ Pengguna pertama: DynoPOS (pemilik repo).
 - Satu PR satu fasa. Jangan gabung.
 
 ## Stack (jangan tukar tanpa tanya)
-- Laravel 11, PHP 8.3, MySQL 8 (Fasa 0 sqlite), Livewire 3, Tailwind, Blade
+- Laravel 11, PHP 8.5, MySQL 8 (Fasa 0 sqlite), Livewire 3, Tailwind, Blade
 - Meta Marketing API v21.0 — semua panggilan lalu `App\Services\MetaAdsService`
 - Claude API — semua panggilan lalu service khusus (`CaptionService`, `ChatService`), tak pernah dari Livewire
 - Render poster: Node + Playwright (Chromium sudah ada, `PLAYWRIGHT_BROWSERS_PATH=/opt/pw-browsers`)
