@@ -15,7 +15,7 @@ jobs:
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
         with:
-          php-version: '8.3'
+          php-version: '8.5'
           extensions: gd, sqlite3, pdo_sqlite, mbstring, intl
           coverage: none
 
@@ -30,6 +30,18 @@ jobs:
 
       - name: Pint
         run: vendor/bin/pint --test
+
+      # Dua ujian memuatkan layouts/app.blade.php, yang memanggil @vite.
+      # Tanpa manifest, Blade membuang pengecualian dan ujian gagal atas sebab
+      # yang tiada kaitan dengan apa yang diuji.
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Build assets
+        run: npm ci && npm run build
 
       - name: Test
         run: php artisan test
