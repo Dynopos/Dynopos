@@ -26,6 +26,8 @@ it('nilai compiled tidak dibalut realpath — ia pulangkan false bila folder tia
 });
 
 it('Blade mengkompil walaupun folder views belum wujud', function () {
+    masukSebagaiPemilik();
+
     $dir = storage_path('framework/views');
     $backup = $dir.'-backup-'.uniqid();
 

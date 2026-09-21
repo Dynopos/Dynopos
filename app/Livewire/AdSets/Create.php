@@ -6,6 +6,7 @@ use App\Exceptions\MetaApiException;
 use App\Models\AdSet;
 use App\Models\AdVariant;
 use App\Services\ImageProcessor;
+use App\Services\Meta\MetaCredentials;
 use App\Services\MetaAdsService;
 use App\Services\Poster\PosterBasket;
 use App\Services\Poster\ProductHandoff;
@@ -55,7 +56,9 @@ class Create extends Component
 
     public function mount(MetaAdsService $meta): void
     {
-        $this->phone = (string) config('dynoads.meta.wa_phone');
+        // Dari sambungan peniaga sendiri. Sebelum Fasa 7a ini membaca .env,
+        // jadi setiap peniaga nampak nombor WhatsApp pemilik app sebagai lalai.
+        $this->phone = MetaCredentials::current()->waPhone;
         $this->budgetRm = intdiv((int) config('dynoads.budget.default_daily_sen'), 100);
 
         try {

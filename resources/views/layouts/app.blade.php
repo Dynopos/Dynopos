@@ -28,12 +28,35 @@
 <body class="h-full antialiased">
     <div class="mx-auto flex min-h-full w-full max-w-md flex-col">
         <header class="flex items-center justify-between px-5 pb-2 pt-5">
-            <a href="{{ route('ad-sets.create') }}" wire:navigate class="flex items-center gap-2.5">
+            <a href="{{ auth()->check() ? route('ad-sets.create') : route('masuk') }}" wire:navigate class="flex items-center gap-2.5">
                 <img src="{{ asset('img/logo.png') }}" alt="" class="h-10 w-10 shrink-0">
                 <span class="text-lg font-extrabold tracking-tight">
                     <span class="gradient-text">DYNO</span><span>ADS</span>
                 </span>
             </a>
+
+            <div class="flex items-center gap-2">
+            @auth
+                <a href="{{ route('meta.connect') }}" wire:navigate class="icon-btn" aria-label="Sambungan akaun Meta"
+                   title="{{ auth()->user()->name }}">
+                    <svg class="h-[18px] w-[18px]" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                         stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                        <circle cx="12" cy="7" r="4"/>
+                    </svg>
+                </a>
+
+                <form method="POST" action="{{ route('keluar') }}">
+                    @csrf
+                    <button type="submit" class="icon-btn" aria-label="Keluar">
+                        <svg class="h-[18px] w-[18px]" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                             stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+                            <path d="M16 17l5-5-5-5M21 12H9"/>
+                        </svg>
+                    </button>
+                </form>
+            @endauth
 
             <button type="button" onclick="tukarTema()" aria-label="Tukar mod terang atau gelap"
                     class="icon-btn">
@@ -48,6 +71,7 @@
                     <path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>
                 </svg>
             </button>
+            </div>
         </header>
 
         <main class="flex-1 px-5 pb-24 pt-3">

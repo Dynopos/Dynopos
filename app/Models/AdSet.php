@@ -2,14 +2,20 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\BelongsToUser;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class AdSet extends Model
 {
-    use HasFactory;
+    use BelongsToUser, HasFactory;
 
+    /**
+     * user_id SENGAJA tiada di sini. Ia ditetapkan oleh BelongsToUser
+     * daripada user yang log masuk, bukan daripada input borang — supaya tiada
+     * permintaan boleh mengaku data ini milik orang lain.
+     */
     protected $fillable = [
         'name', 'problem', 'offer', 'phone',
         'region_keys', 'region_names', 'daily_budget_sen', 'status',
