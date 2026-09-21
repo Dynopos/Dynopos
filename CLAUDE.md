@@ -148,37 +148,41 @@ dalam repo buat masa ini supaya set iklan lama tidak pecah. Ia tidak dibangunkan
 
 ---
 
-# FASA 2 — Satu gambar, banyak hook
-**Matlamat:** peniaga muat naik SATU gambar, AI tulis 2–4 hook berbeza, setiap hook jadi
-satu campaign. Split test membandingkan **ayat**, bukan gambar.
+# FASA 2 — Rekod apa yang menang, bukan hanya siapa
 
-**Kenapa ini penting:** split test Fasa 0 mengubah gambar DAN caption serentak — variant 1
-dapat gambar 1 + caption 1, variant 2 dapat gambar 2 + caption 2. Bila satu menang, tiada
-siapa tahu yang mana menyebabkannya. Memegang gambar sebagai pemalar menjadikan keputusan
-itu bermakna buat kali pertama.
+**Matlamat:** setiap variant merekod media jenis apa dan sudut copy mana yang dipakai,
+supaya selepas beberapa bulan sistem boleh beritahu peniaga sesuatu yang berguna.
+
+**Kenapa fasa ini kecil:** aliran yang pemilik mahu — peniaga bagi 2–4 media berbeza,
+app jana satu caption untuk setiap satu, satu campaign setiap satu, yang menang dikekalkan
+— **sudah terbina sejak Fasa 0**. Yang tiada hanyalah ingatan: Dashboard boleh kata
+"Creative #2 menang", tetapi tiada apa merekod bahawa #2 itu video dengan sudut bantahan.
+
+Tanpa dua lajur ini, setiap set iklan bermula dari kosong. Dengan ia, Fasa 5 boleh
+mengumpul merentas kempen: *"video menang 6 daripada 8 kali untuk bisnes anda"*.
+
+**Had yang perlu difahami:** setiap ujian mengubah media DAN caption serentak, jadi satu
+ujian tidak boleh membuktikan yang mana menyebabkan kemenangan. Itu pertukaran yang
+disengajakan — peniaga dengan bajet RM37/hari tidak mampu kitaran ujian terkawal. Tetapi
+merentas 50 set iklan, corak yang berulang tetap bermakna walaupun satu-satu ujian tidak.
 
 ```
-Baca CLAUDE.md dan docs/dyno-ads-spec-v0.2.md §4. Laksanakan FASA 2 sahaja.
+Baca CLAUDE.md. Laksanakan FASA 2 sahaja.
 
-1. Migration: ad_variants tambah `hook` (string, nullable) — sudut yang digunakan
-   caption itu, cth "bantahan", "kos tersembunyi", "apa berubah selepas".
+1. Migration: ad_variants tambah `hook` (string, nullable) dan `media_type`
+   (image|video, default image). JANGAN muatkan media_type ke dalam source_type —
+   keduanya ortogonal; posting sedia ada pun boleh jadi video.
 2. CaptionService::generate() pulangkan {caption, hook} untuk setiap sudut, bukan
    string sahaja. Prompt sudah menyenaraikan lima sudut — namakannya dalam respons
    JSON supaya app boleh simpan yang mana dipakai.
-3. Skrin Create: satu gambar sahaja, plus pilihan berapa hook nak diuji (2/3/4).
-   Buang had 4 gambar; had baharu ialah bilangan hook.
-4. AdLauncher::createAll() muat naik gambar SEKALI dan guna semula meta_image_hash
-   merentas semua variant. Sekarang ia muat naik sekali setiap variant — empat kali
-   untuk fail yang sama, dan muat naik ialah panggilan Meta paling berat.
-5. Dashboard papar hook setiap variant, bukan hanya nombor creative.
-6. Test Pest: satu gambar hasilkan N variant dengan caption berbeza dan image_hash
-   sama; uploadImage dipanggil sekali sahaja walau empat variant.
+3. Review simpan hook bersama caption bila variant dikemaskini.
+4. Dashboard papar hook dan media_type setiap variant.
+5. Test Pest: hook disimpan dari respons AI; variant lama tanpa hook tidak pecah.
 ```
 
 **Semak sebelum tutup fasa**
-- [ ] Satu gambar, empat hook → empat campaign PAUSED, satu image_hash
-- [ ] Dashboard beritahu hook mana menang, bukan sekadar "Creative #2"
-- [ ] Muat naik ke Meta berlaku sekali, bukan empat kali
+- [ ] Dashboard beritahu "video · sudut bantahan" bukan hanya "Creative #2"
+- [ ] Set iklan lama yang tiada hook masih dipapar tanpa ralat
 
 ---
 
@@ -203,9 +207,8 @@ Baca CLAUDE.md dan docs/dyno-ads-spec-v0.2.md §4. Laksanakan FASA 3 sahaja.
 
 1. Sahkan bentuk video_data dan status polling terhadap dokumentasi Marketing API v21.0.
    Betulkan pelan ini kalau ia berbeza daripada jadual di atas.
-2. Migration: ad_variants tambah `media_type` (image|video, default image),
-   `meta_video_id` dan `thumbnail_path`. JANGAN muatkan ini ke dalam source_type —
-   keduanya ortogonal; posting sedia ada pun boleh jadi video.
+2. Migration: ad_variants tambah `meta_video_id` dan `thumbnail_path`.
+   (`media_type` sudah ditambah dalam Fasa 2.)
 3. App\Services\VideoUploader: muat naik ke /advideos, pulangkan video_id.
 4. Queue job meninjau status video sampai sedia, kemudian cipta creative dan ad.
    Approve tidak lagi segerak. Skrin Run kena tunjuk "sedang diproses" dengan jujur.
@@ -225,23 +228,23 @@ Baca CLAUDE.md dan docs/dyno-ads-spec-v0.2.md §4. Laksanakan FASA 3 sahaja.
 
 ---
 
-# KEPUTUSAN TERBUKA — apa yang setiap split test ubah
+# KEPUTUSAN — apa yang setiap split test ubah
 
-Bila peniaga bawa gambar DAN video, app kena tahu ujian jenis mana yang berjalan:
+**Diputuskan 21 Sept 2026.** Peniaga bagi 2–4 media berbeza. App jana satu caption untuk
+setiap satu. Satu media = satu campaign. Yang paling murah kos/lead dikekalkan.
 
-- **Ubah hook, pegang media** → belajar sudut mana berkesan
-- **Ubah media, pegang hook** → belajar format mana berkesan
-- **Ubah kedua-dua** → tahu mana menang, tak tahu kenapa
+Ini ujian peringkat **creative**, bukan ujian pemboleh ubah tunggal. Media dan caption
+berubah serentak, jadi satu ujian menjawab "yang mana menang" tetapi bukan "kenapa".
+Diterima dengan sedar: peniaga dengan bajet RM37/hari tidak mampu kitaran ujian terkawal,
+dan yang dia mahu ialah lead murah, bukan kertas kajian.
 
-Cadangan: lalai kepada ujian hook, dan tawarkan ujian format sebagai pilihan jelas.
-Sebabnya produk ini menjual pembelajaran — ujian yang confounded tidak mengajar apa-apa.
+Lajur `hook` dan `media_type` (Fasa 2) ialah cara mendapat semula sebahagian "kenapa" itu —
+bukan daripada satu ujian, tetapi daripada corak merentas puluhan set iklan.
 
 Nota: saranan Meta "guna gambar + video" bermaksud letak kedua-duanya dalam **ad set yang
-sama** supaya algoritma penghantaran boleh memilih. Seni bina kita sengaja letak satu
-creative satu campaign supaya KITA boleh membandingkan. Dua strategi berbeza — jangan
+sama** supaya algoritma penghantaran boleh memilih per-orang. Seni bina kita sengaja letak
+satu creative satu campaign supaya KITA boleh membandingkan. Dua strategi berbeza — jangan
 jangka faedah pertama daripada susunan kedua.
-
-**Belum diputuskan oleh pemilik.**
 
 ---
 

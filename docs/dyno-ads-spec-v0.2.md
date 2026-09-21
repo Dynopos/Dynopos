@@ -49,11 +49,14 @@ bukan sekadar dipapar.
 
 Enjin poster dan latar AI dibatalkan 21 Sept 2026. App tidak menjana gambar atau video.
 
-- **Gambar** — peniaga muat naik satu gambar. AI tulis 2–4 hook berbeza; setiap hook satu
-  campaign. Split test membandingkan ayat dengan gambar dipegang sebagai pemalar, supaya
-  keputusan "yang mana menang" boleh dijawab dengan "kenapa".
-- **Video** — peniaga muat naik video sendiri. Muat naik ke `/advideos` tak segerak, jadi
-  campaign hanya dicipta selepas Meta selesai memproses. Thumbnail wajib.
+- **Gambar dan video** — peniaga muat naik 2–4 media berbeza. AI jana satu caption untuk
+  setiap satu. Satu media = satu campaign. Yang paling murah kos/lead dikekalkan, yang
+  lemah dipause.
+- Ini ujian peringkat creative: media dan caption berubah serentak, jadi satu ujian
+  menjawab "yang mana menang" tetapi bukan "kenapa". Diterima dengan sedar — peniaga
+  dengan bajet RM37/hari tidak mampu kitaran ujian terkawal.
+- **Video** — muat naik ke `/advideos` tak segerak, jadi campaign hanya dicipta selepas
+  Meta selesai memproses. Thumbnail wajib.
 - `ad_variants.media_type` (`image` | `video`) berasingan daripada `source_type` — keduanya
   ortogonal; posting sedia ada pun boleh jadi video.
 - `ad_variants.hook` merekod sudut yang dipakai, supaya Fasa 5 boleh melaporkan sudut mana
