@@ -142,6 +142,26 @@ return [
         'size' => 1080,
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Posting Page sedia ada (Fasa 1)
+    |--------------------------------------------------------------------------
+    |
+    | Peraturan 13: app hanya MERUJUK post_id. Ia tidak pernah mengedit,
+    | memadam atau mengubah posting peniaga. PagePostService tiada satu pun
+    | method yang menulis, dan ada ujian yang menguatkuasakannya.
+    |
+    */
+    'page_posts' => [
+        'cache_minutes' => 10,
+        'per_page' => 25,
+
+        // Kurang dari dua, tiada apa nak dibandingkan. Lebih dari empat,
+        // bajet berpecah terlalu nipis untuk sesiapa capai signifikan.
+        'min_selection' => 2,
+        'max_selection' => 4,
+    ],
+
     // DYNOADS-{setID}-{n}-{DDMMMYY}
     'name_prefix' => 'DYNOADS',
 

@@ -86,6 +86,18 @@
                     </span>
                     <span class="t-faint">&rarr;</span>
                 </a>
+
+                <a href="{{ route('ad-sets.existing-posts') }}" wire:navigate
+                   class="card mt-2 flex items-center gap-3 p-3.5">
+                    <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-dyno-gradient text-lg">&#128241;</span>
+                    <span class="min-w-0 flex-1">
+                        <span class="block text-sm font-bold">Guna posting sedia ada</span>
+                        <span class="block text-xs leading-relaxed t-muted">
+                            Pilih posting yang dah ada di Page anda. Like dan komen terkumpul pada posting asal.
+                        </span>
+                    </span>
+                    <span class="t-faint">&rarr;</span>
+                </a>
             @else
                 <p class="hint">Sudah cukup 4. Buang satu kalau nak tukar.</p>
             @endif

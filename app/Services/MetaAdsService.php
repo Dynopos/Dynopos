@@ -115,6 +115,54 @@ class MetaAdsService
     }
 
     /**
+     * Creative daripada posting Page sedia ada (Fasa 1).
+     *
+     * Guna object_story_id, bukan object_story_spec. Bezanya penting kepada
+     * peniaga: dengan object_story_id, semua like, komen dan share terkumpul
+     * pada posting asal dia. Dia nampak posting sendiri naik, bukan empat
+     * iklan asing yang tiada kaitan antara satu sama lain.
+     *
+     * Butang WhatsApp di atas posting sedia ada tidak diterima oleh setiap
+     * gabungan objektif dan format, dan Meta tidak mendokumenkan dengan jelas
+     * yang mana. Bila ia ditolak, AdLauncher menangkapnya melalui
+     * MetaApiException::isCallToActionError() dan jatuh ke laluan salinan.
+     */
+    public function createCreativeFromPost(string $name, string $postId): string
+    {
+        $payload = [
+            'name' => $name,
+            'object_story_id' => $this->objectStoryId($postId),
+            'call_to_action' => json_encode([
+                'type' => config('dynoads.ad.call_to_action_type'),
+                'value' => [
+                    'link' => $this->whatsappLink(),
+                    'app_destination' => 'WHATSAPP',
+                ],
+            ]),
+        ];
+
+        return $this->createObject("{$this->adAccountId}/adcreatives", $payload);
+    }
+
+    /**
+     * Bentuk "{page_id}_{post_id}" yang Meta jangka.
+     *
+     * Graph API memulangkan id posting yang SUDAH berawalan page id, jadi
+     * mencantum secara membuta akan menghasilkan "{page}_{page}_{post}" —
+     * yang ditolak Meta dengan mesej yang tidak menyebut puncanya langsung.
+     * Method ini menerima kedua-dua bentuk dan sentiasa memulangkan satu.
+     */
+    public function objectStoryId(string $postId): string
+    {
+        $pageId = (string) config('dynoads.meta.page_id');
+        $bare = str_contains($postId, '_')
+            ? substr($postId, strrpos($postId, '_') + 1)
+            : $postId;
+
+        return $pageId.'_'.$bare;
+    }
+
+    /**
      * Link WhatsApp berserta ayat pra-isi dalam Bahasa Melayu.
      *
      * Tanpa parameter `text`, Meta mengisi ayat defaultnya sendiri dalam Bahasa

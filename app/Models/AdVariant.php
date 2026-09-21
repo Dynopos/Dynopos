@@ -12,7 +12,7 @@ class AdVariant extends Model
     use HasFactory;
 
     protected $fillable = [
-        'ad_set_id', 'position', 'source_type', 'poster_job_id', 'image_path', 'caption',
+        'ad_set_id', 'position', 'source_type', 'poster_job_id', 'source_post_id', 'image_path', 'caption',
         'meta_image_hash', 'meta_campaign_id', 'meta_adset_id',
         'meta_creative_id', 'meta_ad_id', 'status', 'last_error',
     ];
@@ -37,6 +37,18 @@ class AdVariant extends Model
     public function isPoster(): bool
     {
         return $this->source_type === 'poster';
+    }
+
+    /**
+     * Creative ini ialah posting Page yang peniaga sudah ada.
+     *
+     * Bezanya bukan kosmetik: variant begini tiada gambar untuk dimuat naik,
+     * dan creative-nya dibina daripada object_story_id supaya engagement
+     * terkumpul pada posting asal.
+     */
+    public function isFromExistingPost(): bool
+    {
+        return $this->source_type === 'existing_post';
     }
 
     public function metrics(): HasMany
