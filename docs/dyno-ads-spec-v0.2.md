@@ -45,21 +45,25 @@ bukan sekadar dipapar.
 
 ## §4 Creative
 
-### §4A Poster (Fasa 2–3)
+### §4A Creative datang dari peniaga (Fasa 2–3)
 
-Data teks → poster PNG 1080×1080. **Teks tidak pernah dijana oleh model imej** —
-latar sahaja dari AI, semua teks dari HTML supaya ejaan Melayu sentiasa betul.
+Enjin poster dan latar AI dibatalkan 21 Sept 2026. App tidak menjana gambar atau video.
 
-- 6 template Blade: promo-meletup, harga-jelas, sebelum-selepas, senarai-servis,
-  testimoni, kedai-baru. Varian 1080×1350 dan 1080×1920.
-- Token jenama dari `brand_kits` sebagai CSS custom properties.
-- Scrim gelap di belakang teks untuk kontras.
-- Auto-fit: had aksara setiap slot + kecilkan font bila melimpah.
-  **Teks tidak boleh terpotong.**
-- Render: Blade → HTML sementara → Playwright → PNG. `cache_key =
-  sha1(template + data + background)`; hit cache tidak render semula.
-- `BackgroundDriver`: `UploadDriver`, `StockDriver`, kemudian `AiDriver`.
-  Prompt AI wajib minta gambar TANPA teks, logo atau papan tanda.
+- **Gambar dan video** — peniaga muat naik 2–4 media berbeza. AI jana satu caption untuk
+  setiap satu. Satu media = satu campaign. Yang paling murah kos/lead dikekalkan, yang
+  lemah dipause.
+- Ini ujian peringkat creative: media dan caption berubah serentak, jadi satu ujian
+  menjawab "yang mana menang" tetapi bukan "kenapa". Diterima dengan sedar — peniaga
+  dengan bajet RM37/hari tidak mampu kitaran ujian terkawal.
+- **Video** — muat naik ke `/advideos` tak segerak, jadi campaign hanya dicipta selepas
+  Meta selesai memproses. Thumbnail wajib.
+- `ad_variants.media_type` (`image` | `video`) berasingan daripada `source_type` — keduanya
+  ortogonal; posting sedia ada pun boleh jadi video.
+- `ad_variants.hook` merekod sudut yang dipakai, supaya Fasa 5 boleh melaporkan sudut mana
+  menang merentas kempen, bukan hanya nombor creative dalam satu kempen.
+
+Kos yang diterima secara sedar: halangan "tiada gambar cantik" kembali. Sebahagian peniaga
+tidak akan beriklan kerana itu.
 
 ### §4B Posting sedia ada (Fasa 1)
 

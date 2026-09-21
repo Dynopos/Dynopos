@@ -7,20 +7,21 @@ Spec penuh: `docs/dyno-ads-spec-v0.2.md` (v0.1 disimpan di `docs/dyno-ads-spec.m
 ---
 
 ## Apa projek ni
-App Laravel yang buat poster, tulis copy, lancar iklan Meta **Click-to-WhatsApp**, pantau
-prestasi dan hantar report — untuk peniaga kecil Malaysia. Produk di bawah DYNOPRO.
+App Laravel yang ambil gambar atau video peniaga, tulis copy, lancar iklan Meta
+**Click-to-WhatsApp**, pantau prestasi dan hantar report — untuk peniaga kecil Malaysia. Produk di bawah DYNOPRO.
 Pengguna pertama: DynoPOS (pemilik repo).
 
 ## Status
 - **Fasa 0 — SIAP.** Borang Create → Review → Run → Dashboard, campaign PAUSED, insights.
-- Fasa 1 seterusnya: **guna posting sedia ada**. Jangan mula fasa lain sebelum ni stabil.
+- **Fasa 1 — SIAP** (PR #2): guna posting Page sedia ada sebagai creative.
+- Fasa 2 seterusnya: **satu gambar, banyak hook**. Jangan mula fasa lain sebelum ni stabil.
+- Enjin poster dan latar AI **dibatalkan** — lihat nota arah di bawah.
 - Satu PR satu fasa. Jangan gabung.
 
 ## Stack (jangan tukar tanpa tanya)
 - Laravel 11, PHP 8.5, MySQL 8 (Fasa 0 sqlite), Livewire 3, Tailwind, Blade
 - Meta Marketing API v21.0 — semua panggilan lalu `App\Services\MetaAdsService`
 - Claude API — semua panggilan lalu service khusus (`CaptionService`, `ChatService`), tak pernah dari Livewire
-- Render poster: Node + Playwright (Chromium sudah ada, `PLAYWRIGHT_BROWSERS_PATH=/opt/pw-browsers`)
 - Queue: database driver dulu, Redis kemudian
 - Test: Pest, `Http::fake()` untuk semua panggilan luar
 
@@ -31,7 +32,8 @@ Pengguna pertama: DynoPOS (pemilik repo).
 4. Setiap tindakan yang ubah Meta → rekod dalam `auto_actions` dulu, baru panggil API.
 5. **LLM tidak pernah memanggil Meta API.** LLM isi medan; app validate; manusia sahkan; app panggil Meta.
 6. **Tiada duit dibelanjakan tanpa satu klik pengesahan manusia yang jelas.**
-7. **Teks pada poster tidak pernah dijana oleh model imej.** Latar sahaja dari AI; semua teks dari HTML.
+7. **App tidak menjana gambar atau video.** Semua visual datang dari peniaga — dimuat naik
+   sendiri, atau posting Page yang dia sudah ada. AI menulis teks sahaja.
 8. Token/API key hanya dalam `.env`. Jangan log, jangan commit, jangan tulis dalam chat.
 9. Bahasa UI: Melayu santai. Istilah user: "iklan", "kawasan", "bajet", "lead". Bukan "adset", "CBO", "conversion".
 10. Mobile-first. Satu skrin satu keputusan.
@@ -69,13 +71,11 @@ app/Services/CaptionService.php            caption AI
 app/Services/AdLauncher.php                orkestra DB ⇄ Meta
 app/Services/ImageProcessor.php            crop 1080×1080
 app/Services/PagePostService.php           (Fasa 1 — senarai posting Page)
-app/Services/Poster/PosterService.php      (Fasa 2)
-app/Services/Poster/Backgrounds/*.php      (Fasa 2–3)
+app/Services/VideoUploader.php             (Fasa 3 — muat naik video ke Meta)
 app/Services/Chat/ChatService.php          (Fasa 4)
 app/Services/SplitTestService.php          (Fasa 5)
 app/Livewire/AdSets/{Create,Review,Run,Dashboard}.php
 config/dynoads.php                         semua setting Meta
-resources/views/posters/*.blade.php        (Fasa 2)
 docs/dyno-ads-spec-v0.2.md
 ```
 
@@ -127,59 +127,124 @@ Baca CLAUDE.md dan docs/dyno-ads-spec-v0.2.md §4B. Laksanakan FASA 1 sahaja.
 
 ---
 
-# FASA 2 — Enjin poster
-**Matlamat:** dari data teks → poster PNG 1080×1080 yang teks Melayunya sentiasa betul.
+# NOTA ARAH — kenapa enjin poster dibatalkan
 
-```
-Baca CLAUDE.md dan docs/dyno-ads-spec-v0.2.md §4. Laksanakan FASA 2 sahaja.
+Fasa 2 lama ialah enjin poster (template Blade + Playwright), Fasa 3 lama ialah latar AI.
+Kedua-duanya dibatalkan pada 21 Sept 2026. Sebabnya:
 
-1. Migration + model: brand_kits (logo_path, primary_hex, dark_hex, font, tone),
-   poster_jobs (brief_id nullable, template, data_json, background_source, background_path,
-   output_path, cache_key unique, status).
-2. 6 template Blade dalam resources/views/posters/: promo-meletup, harga-jelas,
-   sebelum-selepas, senarai-servis, testimoni, kedai-baru.
-   - Saiz tetap 1080×1080 (kelas varian untuk 1080×1350 dan 1080×1920)
-   - Token jenama dari brand_kit sebagai CSS custom properties
-   - Scrim gelap di belakang teks untuk kontras
-   - Auto-fit: had aksara setiap slot + kecilkan font automatik bila melimpah.
-     Tulis helper Blade @fit($text, $maxChars) — TEKS TAK BOLEH TERPOTONG.
-3. App\Services\Poster\PosterService::render(string $template, array $data, ?string $background): string
-   - Render Blade → HTML sementara → skrip Node/Playwright → PNG → storage/app/public/posters
-   - cache_key = sha1(template + data + background). Hit cache = pulangkan path lama.
-   - Guna PLAYWRIGHT_BROWSERS_PATH dari env; jangan muat turun browser.
-4. Interface App\Services\Poster\Backgrounds\BackgroundDriver dengan UploadDriver dan
-   StockDriver dahulu (AiDriver Fasa 3 — biar interface sedia menerimanya).
-5. Livewire skrin "Buat Poster": pilih template → isi medan → pilih latar → pratonton →
-   simpan. Pratonton kena guna render sebenar, bukan CSS approximation.
-6. Poster yang disimpan boleh terus jadi creative iklan (source_type=poster).
-7. Test Pest: setiap template render tanpa ralat; teks panjang tidak melimpah keluar;
-   cache_key sama tak render dua kali; PNG betul 1080×1080.
-```
+**Kos operasi.** Chromium gagal dipasang empat kali atas sebab berbeza, timeout render
+berlanggar dengan had PHP-FPM, dan had muat naik php.ini memecahkan skrin. Semuanya
+direkod dalam `docs/forge.md`. Itu permukaan kegagalan yang besar untuk satu ciri.
 
-**Semak sebelum tutup fasa**
-- [ ] 6 template render, teks Melayu tajam dan betul ejaan
-- [ ] Headline 80 aksara pun masih muat, tak terpotong
-- [ ] Poster boleh terus jadi creative iklan
-- [ ] Render kedua bagi input sama guna cache, tak panggil Playwright
+**Peniaga sudah ada creative.** Spec sendiri menyenaraikan gambar peniaga sebagai sumber
+terbaik. Ramai juga sudah ada video dalam telefon. Meminta mereka bawa creative sendiri
+bukan meninggalkan tesis produk — ia menjadikan laluan terbaik itu satu-satunya laluan.
+
+**Apa yang diterima sebagai kos.** Halangan "tiada gambar cantik" kembali; sebahagian
+peniaga tidak akan beriklan kerana itu. Keputusan ini dibuat dengan sedar.
+
+Kod poster sedia ada (`app/Services/Poster/*`, `resources/poster/`, `poster_jobs`) kekal
+dalam repo buat masa ini supaya set iklan lama tidak pecah. Ia tidak dibangunkan lagi.
 
 ---
 
-# FASA 3 — Latar AI
-**Matlamat:** peniaga tanpa gambar pun boleh dapat poster kemas.
+# FASA 2 — Rekod apa yang menang, bukan hanya siapa
+
+**Matlamat:** setiap variant merekod media jenis apa dan sudut copy mana yang dipakai,
+supaya selepas beberapa bulan sistem boleh beritahu peniaga sesuatu yang berguna.
+
+**Kenapa fasa ini kecil:** aliran yang pemilik mahu — peniaga bagi 2–4 media berbeza,
+app jana satu caption untuk setiap satu, satu campaign setiap satu, yang menang dikekalkan
+— **sudah terbina sejak Fasa 0**. Yang tiada hanyalah ingatan: Dashboard boleh kata
+"Creative #2 menang", tetapi tiada apa merekod bahawa #2 itu video dengan sudut bantahan.
+
+Tanpa dua lajur ini, setiap set iklan bermula dari kosong. Dengan ia, Fasa 5 boleh
+mengumpul merentas kempen: *"video menang 6 daripada 8 kali untuk bisnes anda"*.
+
+**Had yang perlu difahami:** setiap ujian mengubah media DAN caption serentak, jadi satu
+ujian tidak boleh membuktikan yang mana menyebabkan kemenangan. Itu pertukaran yang
+disengajakan — peniaga dengan bajet RM37/hari tidak mampu kitaran ujian terkawal. Tetapi
+merentas 50 set iklan, corak yang berulang tetap bermakna walaupun satu-satu ujian tidak.
 
 ```
-Baca spec §4. Laksanakan FASA 3.
+Baca CLAUDE.md. Laksanakan FASA 2 sahaja.
 
-1. AiDriver: jana latar 1080×1080. Prompt WAJIB minta gambar TANPA teks, TANPA logo,
-   TANPA papan tanda. Kalau model pulangkan imej berteks, cuba semula sekali.
-2. Konfigurasi pembekal dalam config/dynoads.php supaya boleh tukar tanpa ubah kod.
-3. Kuota: ai_usage (user_id, kind, count, cost_sen). Had per pelan dari config.
-   Bila kuota habis → tawarkan template + gambar sendiri, jangan sekadar ralat.
-4. Cache agresif: latar sama untuk industri + mood sama boleh diguna semula.
-5. UI: bila user pilih latar AI berunsur manusia, papar amaran satu baris dan
-   tandakan poster sebagai "gambar ilustrasi".
-6. Test: kuota dikuatkuasakan; kegagalan pembekal jatuh balik ke StockDriver dengan elok.
+1. Migration: ad_variants tambah `hook` (string, nullable) dan `media_type`
+   (image|video, default image). JANGAN muatkan media_type ke dalam source_type —
+   keduanya ortogonal; posting sedia ada pun boleh jadi video.
+2. CaptionService::generate() pulangkan {caption, hook} untuk setiap sudut, bukan
+   string sahaja. Prompt sudah menyenaraikan lima sudut — namakannya dalam respons
+   JSON supaya app boleh simpan yang mana dipakai.
+3. Review simpan hook bersama caption bila variant dikemaskini.
+4. Dashboard papar hook dan media_type setiap variant.
+5. Test Pest: hook disimpan dari respons AI; variant lama tanpa hook tidak pecah.
 ```
+
+**Semak sebelum tutup fasa**
+- [ ] Dashboard beritahu "video · sudut bantahan" bukan hanya "Creative #2"
+- [ ] Set iklan lama yang tiada hook masih dipapar tanpa ralat
+
+---
+
+# FASA 3 — Video
+**Matlamat:** peniaga muat naik video sendiri, atau gambar dan video sekali.
+
+**Ini bukan "satu lagi jenis fail".** Video mengubah tiga perkara asas, dan setiap satu
+boleh gagal sendiri:
+
+| | Gambar | Video |
+|---|---|---|
+| Muat naik | `POST /act_x/adimages` → `image_hash` | `POST /act_x/advideos` → `video_id` |
+| Pemprosesan | Serta-merta | **Tak segerak** — Meta proses dahulu |
+| Creative | `object_story_spec.link_data` | `object_story_spec.video_data` |
+| Thumbnail | Tak perlu | **Wajib** |
+
+Butiran API di atas belum disahkan terhadap dokumentasi v21.0. **Sahkan dahulu sebelum
+menulis kod** — bentuk `video_data` dan cara polling status adalah andaian.
+
+```
+Baca CLAUDE.md dan docs/dyno-ads-spec-v0.2.md §4. Laksanakan FASA 3 sahaja.
+
+1. Sahkan bentuk video_data dan status polling terhadap dokumentasi Marketing API v21.0.
+   Betulkan pelan ini kalau ia berbeza daripada jadual di atas.
+2. Migration: ad_variants tambah `meta_video_id` dan `thumbnail_path`.
+   (`media_type` sudah ditambah dalam Fasa 2.)
+3. App\Services\VideoUploader: muat naik ke /advideos, pulangkan video_id.
+4. Queue job meninjau status video sampai sedia, kemudian cipta creative dan ad.
+   Approve tidak lagi segerak. Skrin Run kena tunjuk "sedang diproses" dengan jujur.
+5. Thumbnail: ambil daripada Meta selepas proses, atau benarkan peniaga pilih frame.
+6. Had muat naik pelayan: upload_max_filesize, post_max_size, client_max_body_size
+   nginx, dan timeout PHP-FPM serta nginx. Uploads::maxKilobytes() ada siling keras
+   8192 — naikkan. Video telefon lazimnya 20–100MB.
+7. Test Pest (Http::fake): video_data dihantar dengan video_id dan thumbnail;
+   creative tidak dicipta sebelum status video sedia; kegagalan proses direkod
+   dalam auto_actions dan tidak menggantung queue.
+```
+
+**Semak sebelum tutup fasa**
+- [ ] Video 60MB dari telefon berjaya dimuat naik tanpa ralat
+- [ ] Campaign hanya dicipta selepas Meta selesai memproses video
+- [ ] Peniaga nampak status sebenar semasa menunggu, bukan skrin beku
+
+---
+
+# KEPUTUSAN — apa yang setiap split test ubah
+
+**Diputuskan 21 Sept 2026.** Peniaga bagi 2–4 media berbeza. App jana satu caption untuk
+setiap satu. Satu media = satu campaign. Yang paling murah kos/lead dikekalkan.
+
+Ini ujian peringkat **creative**, bukan ujian pemboleh ubah tunggal. Media dan caption
+berubah serentak, jadi satu ujian menjawab "yang mana menang" tetapi bukan "kenapa".
+Diterima dengan sedar: peniaga dengan bajet RM37/hari tidak mampu kitaran ujian terkawal,
+dan yang dia mahu ialah lead murah, bukan kertas kajian.
+
+Lajur `hook` dan `media_type` (Fasa 2) ialah cara mendapat semula sebahagian "kenapa" itu —
+bukan daripada satu ujian, tetapi daripada corak merentas puluhan set iklan.
+
+Nota: saranan Meta "guna gambar + video" bermaksud letak kedua-duanya dalam **ad set yang
+sama** supaya algoritma penghantaran boleh memilih per-orang. Seni bina kita sengaja letak
+satu creative satu campaign supaya KITA boleh membandingkan. Dua strategi berbeza — jangan
+jangka faedah pertama daripada susunan kedua.
 
 ---
 
@@ -263,8 +328,11 @@ Baca spec §6. Laksanakan FASA 5.
 # FASA 8 — Jual
 ```
 1. Pelan Percuma / Peniaga RM49 / Pro RM129 (had ikut spec §9). toyyibPay FPX (skill toyyibpay).
-2. Kuota dikuatkuasakan: campaign aktif, creative, latar AI sebulan.
-   Guna posting sedia ada TIDAK makan kuota latar AI — jadikan ia daya tarikan pelan Percuma.
+2. Kuota dikuatkuasakan: campaign aktif, creative, dan caption AI sebulan.
+   PERHATIAN: model harga asal membezakan pelan dengan kuota latar AI (5/40/150 sebulan).
+   Latar AI sudah dibatalkan, jadi pembeza itu tiada. Pelan perlukan sebab baharu untuk
+   orang bayar Pro — cadangan: bilangan campaign aktif, kekerapan report, atau sokongan
+   video. BELUM DIPUTUSKAN oleh pemilik; jangan bina harga sebelum ia diputuskan.
 3. Landing page (skill seo-landing-page). Onboarding 3 skrin: app optimize, tak jamin lead.
 4. Admin ringkas: senarai user, pelan, status FB connection, penggunaan AI.
 ```
