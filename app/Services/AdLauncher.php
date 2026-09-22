@@ -64,7 +64,10 @@ class AdLauncher
             $campaignId = $this->meta->createCampaign($name, $set->daily_budget_sen);
             $variant->update(['meta_campaign_id' => $campaignId]);
 
-            $adsetId = $this->meta->createAdSet($campaignId, $name, $set->regionKeyList());
+            // $set->phone ialah nombor WhatsApp yang peniaga taip untuk set ini.
+            // Ia disimpan sejak Fasa 0 tetapi tidak pernah dihantar ke Meta,
+            // jadi setiap lead sampai ke WhatsApp pemilik app.
+            $adsetId = $this->meta->createAdSet($campaignId, $name, $set->regionKeyList(), $set->phone);
             $variant->update(['meta_adset_id' => $adsetId]);
 
             $creativeId = $variant->isFromExistingPost()

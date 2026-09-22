@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Exceptions\MetaApiException;
+use App\Services\Meta\MetaCredentials;
 use Illuminate\Http\Client\PendingRequest;
 use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Cache;
@@ -19,12 +20,42 @@ use Illuminate\Support\Facades\Http;
  */
 class MetaAdsService
 {
+    /**
+     * Keempat-empat nilai boleh datang dari luar sejak Fasa 7a.
+     *
+     * Sebelum ini `pageId` dan `waPhone` dibaca terus dari config di dalam
+     * method — yang bermakna walaupun token peniaga lain dihantar ke sini,
+     * iklan tetap dibuat di atas Page pemilik dan lead pergi ke WhatsApp
+     * pemilik. Kedua-duanya kini keadaan objek, bukan pembolehubah global.
+     *
+     * Fallback config dikekalkan supaya konteks pemilik (arahan artisan,
+     * test) terus berfungsi tanpa FbConnection.
+     */
     public function __construct(
         protected ?string $token = null,
         protected ?string $adAccountId = null,
+        protected ?string $pageId = null,
+        protected ?string $waPhone = null,
     ) {
         $this->token ??= (string) config('dynoads.meta.token');
         $this->adAccountId ??= $this->normaliseAccountId((string) config('dynoads.meta.ad_account_id'));
+        $this->pageId ??= (string) config('dynoads.meta.page_id');
+        $this->waPhone ??= (string) config('dynoads.meta.wa_phone');
+    }
+
+    public static function fromCredentials(MetaCredentials $credentials): self
+    {
+        return new self(
+            token: $credentials->token,
+            adAccountId: $credentials->adAccountId,
+            pageId: $credentials->pageId,
+            waPhone: $credentials->waPhone,
+        );
+    }
+
+    public function pageId(): string
+    {
+        return $this->pageId;
     }
 
     // ------------------------------------------------------------------ gambar
@@ -71,9 +102,21 @@ class MetaAdsService
         return $this->createObject("{$this->adAccountId}/campaigns", $payload);
     }
 
-    /** Ad set CONVERSATIONS → WhatsApp, sentiasa PAUSED. */
-    /** @param  array<int, string>  $regionKeys */
-    public function createAdSet(string $campaignId, string $name, array $regionKeys = []): string
+    /**
+     * Ad set CONVERSATIONS → WhatsApp, sentiasa PAUSED.
+     *
+     * $waPhone ialah nombor yang peniaga taip untuk set iklan INI. Sebelum
+     * Fasa 7a parameter ini tidak wujud dan nombor sentiasa diambil dari
+     * config, jadi nombor yang peniaga taip dalam borang diabaikan senyap dan
+     * setiap lead pergi ke WhatsApp pemilik app. Ia mesti dihantar.
+     *
+     * Meta menolak nombor yang tidak disambungkan kepada Page dalam
+     * promoted_object. Itu betul: lebih baik iklan gagal dengan ralat yang
+     * kelihatan daripada berjaya lalu menghantar lead ke telefon yang salah.
+     *
+     * @param  array<int, string>  $regionKeys
+     */
+    public function createAdSet(string $campaignId, string $name, array $regionKeys = [], ?string $waPhone = null): string
     {
         $payload = [
             'name' => $name,
@@ -83,8 +126,8 @@ class MetaAdsService
             'optimization_goal' => config('dynoads.adset.optimization_goal'),
             'destination_type' => config('dynoads.adset.destination_type'),
             'promoted_object' => json_encode([
-                'page_id' => (string) config('dynoads.meta.page_id'),
-                'whatsapp_phone_number' => (string) config('dynoads.meta.wa_phone'),
+                'page_id' => $this->pageId,
+                'whatsapp_phone_number' => $waPhone ?: $this->waPhone,
             ]),
             'targeting' => json_encode($this->buildTargeting($regionKeys)),
         ];
@@ -98,7 +141,7 @@ class MetaAdsService
         $payload = [
             'name' => $name,
             'object_story_spec' => json_encode([
-                'page_id' => (string) config('dynoads.meta.page_id'),
+                'page_id' => $this->pageId,
                 'link_data' => [
                     'link' => $this->whatsappLink(),
                     'message' => $message,
@@ -154,7 +197,7 @@ class MetaAdsService
      */
     public function objectStoryId(string $postId): string
     {
-        $pageId = (string) config('dynoads.meta.page_id');
+        $pageId = $this->pageId;
         $bare = str_contains($postId, '_')
             ? substr($postId, strrpos($postId, '_') + 1)
             : $postId;
@@ -255,6 +298,46 @@ class MetaAdsService
         return (int) collect($actions)
             ->filter(fn ($a) => in_array(data_get($a, 'action_type'), $wanted, true))
             ->sum(fn ($a) => (int) data_get($a, 'value', 0));
+    }
+
+    // ----------------------------------------------------------- pengesahan
+
+    /**
+     * Sahkan kredential ini betul-betul berfungsi, sebelum ia disimpan.
+     *
+     * Dua GET sahaja — tiada apa-apa dibuat atau diubah. Ia menjawab soalan
+     * yang ralat Meta sendiri tidak pernah jawab dengan jelas: adakah token ni
+     * sah, dan adakah ia betul-betul boleh capai ad account DAN Page yang
+     * peniaga masukkan?
+     *
+     * Tanpa pemeriksaan ini, kredential salah hanya kelihatan nanti — di
+     * tengah-tengah pelancaran, selepas peniaga menaip semuanya dan menekan
+     * Approve.
+     *
+     * @return array{ad_account:string, page:string}
+     */
+    public function verifyAccess(): array
+    {
+        $account = $this->unwrap(
+            $this->request()->get($this->url($this->adAccountId), [
+                'fields' => 'name,account_status',
+                'access_token' => $this->token,
+            ]),
+            $this->adAccountId
+        );
+
+        $page = $this->unwrap(
+            $this->request()->get($this->url($this->pageId), [
+                'fields' => 'name',
+                'access_token' => $this->token,
+            ]),
+            $this->pageId
+        );
+
+        return [
+            'ad_account' => (string) (data_get($account, 'name') ?: $this->adAccountId),
+            'page' => (string) (data_get($page, 'name') ?: $this->pageId),
+        ];
     }
 
     // --------------------------------------------------------------- kawasan

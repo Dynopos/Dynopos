@@ -7,6 +7,7 @@ use App\Models\AdSet;
 use App\Models\AdVariant;
 use App\Services\AdLauncher;
 use App\Services\ImageProcessor;
+use App\Services\Meta\MetaCredentials;
 use App\Services\MetaAdsService;
 use App\Services\PagePostService;
 use Illuminate\Http\Client\ConnectionException;
@@ -190,7 +191,7 @@ class ExistingPosts extends Component
             // untuk ditulis. Rekod ini kekal jujur tentang dari mana ia datang.
             'problem' => 'Guna posting sedia ada — teks iklan datang dari posting itu sendiri.',
             'offer' => (string) ($chosen->first()['excerpt'] ?: 'Posting Page sedia ada'),
-            'phone' => (string) config('dynoads.meta.wa_phone'),
+            'phone' => MetaCredentials::current()->waPhone,
             'region_keys' => $this->regionKeys,
             'region_names' => $this->regionNames(),
             'daily_budget_sen' => $this->budgetRm * 100,

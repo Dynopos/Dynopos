@@ -163,11 +163,29 @@ it('teks berbeza menghasilkan cache_key berbeza', function () {
         ->not->toBe($svc->cacheKey('promo-meletup', ['headline' => 'B'], 'stock', 'kafe', null));
 });
 
-it('cache_key unik dikuatkuasakan pada peringkat pangkalan data', function () {
+it('cache_key unik dikuatkuasakan pada peringkat pangkalan data, per peniaga', function () {
+    // Sejak Fasa 7a kuncinya (user_id, cache_key), bukan cache_key sahaja.
+    // Dua peniaga berlainan boleh menghasilkan poster serupa; itu bukan
+    // perlanggaran, dan dahulu ia menyebabkan render peniaga kedua gagal.
+    $ali = masukSebagaiPemilik();
+
     PosterJob::create(['template' => 'promo-meletup', 'data' => [], 'cache_key' => 'sama']);
 
     expect(fn () => PosterJob::create(['template' => 'promo-meletup', 'data' => [], 'cache_key' => 'sama']))
         ->toThrow(UniqueConstraintViolationException::class);
+
+    // Peniaga lain, kunci yang sama — dibenarkan.
+    $siti = pemilik();
+
+    // user_id sengaja bukan fillable — ia datang dari user yang log masuk,
+    // tidak pernah dari input. Jadi di sini ia ditetapkan secara eksplisit.
+    $milikSiti = new PosterJob(['template' => 'promo-meletup', 'data' => [], 'cache_key' => 'sama']);
+    $milikSiti->user_id = $siti->id;
+    $milikSiti->save();
+
+    expect($milikSiti->exists)->toBeTrue()
+        ->and($milikSiti->user_id)->toBe($siti->id)
+        ->and($ali->id)->not->toBe($siti->id);
 });
 
 // ------------------------------------------------- poster terus jadi creative

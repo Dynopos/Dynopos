@@ -307,21 +307,61 @@ Baca spec §6. Laksanakan FASA 5.
 
 ---
 
-# FASA 7 — Multi-user + App Review pusingan 1
+Fasa ini dipecah dua kerana halangannya bukan kod. **7a tidak bergantung pada Meta
+langsung** dan boleh siap hari ini; **7b menunggu App Review**, yang mengambil
+berminggu dan di luar kawalan kita. Business Verification perlu dimulakan sekarang,
+selari, bukan selepas 7a siap.
+
+## FASA 7a — Multi-user (SIAP)
 ```
-1. Auth Breeze + OTP telefon (OtpService).
-2. Facebook Login for Business via Socialite. Scope pusingan 1 SAHAJA:
+1. users + User model (phone, phone_verified_at disediakan untuk OtpService).
+   Auth ditulis sendiri dalam Livewire, BUKAN Breeze — Breeze menghantar view
+   Bahasa Inggeris yang melanggar peraturan 9 dan perlu ditulis semula sepenuhnya.
+2. fb_connections: token encrypted at rest, satu sambungan aktif setiap user.
+3. App\Services\Meta\MetaCredentials — SATU-SATUNYA tempat yang menentukan
+   token/ad account/page/WhatsApp siapa yang digunakan.
+4. MetaAdsService dan PagePostService terima keempat-empatnya dari luar.
+   page_id dan wa_phone TIDAK LAGI dibaca dari config di dalam method.
+5. user_id pada ad_sets dan poster_jobs sahaja — akar pemilikan. ad_variants,
+   auto_actions dan metrics_daily mewarisi melalui ad_set.
+   Global scope, bukan where() manual: terlupa bermakna tidak nampak apa-apa,
+   bukan nampak data orang lain. Binding route bagi id orang lain → 404, bukan 403.
+6. .env hanya fallback untuk is_owner. Peniaga lain tanpa FbConnection TIDAK BOLEH
+   buat iklan — kalau tidak, mereka membelanjakan duit pemilik (peraturan 6).
+7. Arahan dynoads:owner {email} — tetapkan pemilik dan tuntut data sebelum 7a.
+```
+
+**Bug yang ditemui dan dibetulkan semasa 7a:** `ad_sets.phone` — nombor WhatsApp yang
+peniaga taip — disimpan sejak Fasa 0 tetapi tidak pernah dihantar ke Meta.
+`createAdSet()` sentiasa mengambil `config('dynoads.meta.wa_phone')`, jadi **setiap
+lead pergi ke WhatsApp pemilik app**. Nombor itu kini sampai ke `promoted_object`.
+Kesannya: Meta akan menolak nombor yang tidak disambung ke Page. Itu betul — lebih
+baik gagal kelihatan daripada berjaya lalu menghantar lead ke telefon yang salah.
+
+## FASA 7b — Facebook Login + PDPA (menunggu App Review)
+```
+1. Facebook Login for Business via Socialite. Scope pusingan 1 SAHAJA:
    ads_management, ads_read, business_management, pages_show_list,
    pages_read_engagement, pages_manage_ads.
    (pages_read_engagement sudah cukup untuk senarai posting Fasa 1 — tiada tambahan.)
-3. Token long-lived, encrypted dalam fb_connections.
-4. MetaAdsService ambil token/account/page dari FbConnection user; .env kekal fallback pemilik.
-5. Semua model ada user_id + policy isolation.
-6. PDPA (spec v0.1 §9): consent berasingan, Privacy Notice BM, skrin "Data Saya",
+2. Token long-lived dari callback OAuth menggantikan borang /sambung.
+   HANYA cara FbConnection DIISI yang berubah. MetaCredentials kekal.
+3. Skrin /sambung sekarang ialah borang tampal token. Ia untuk PEMILIK
+   menyediakan akaun bagi peniaga perintis — bukan untuk peniaga isi sendiri.
+   Peniaga biasa tidak boleh jana System User token, dan setiap percubaan
+   akan jadi tiket support.
+4. OTP telefon (OtpService) guna users.phone_verified_at yang sudah ada.
+5. PDPA (spec v0.1 §9): consent berasingan, Privacy Notice BM, skrin "Data Saya",
    endpoint POST /meta/data-deletion (verify signed_request), retention 90 hari.
-7. Peringatan token luput 7 hari awal.
-8. Test: isolation antara user; data deletion callback.
+   Gunakan skill pdpa-malaysia.
+6. Peringatan token luput 7 hari awal — FbConnection::expiresSoon() sudah ada.
+7. Test: data deletion callback.
 ```
+
+**Jambatan sebelum App Review lulus:** peniaga kongsi ad account mereka kepada
+Business Manager kita sebagai partner; system user kita dapat akses. BELUM DISAHKAN
+sama ada had Development access Marketing API menyekat laluan ini — uji dengan satu
+akaun sebenar milik orang lain sebelum berjanji kepada pelanggan berbayar.
 
 ---
 

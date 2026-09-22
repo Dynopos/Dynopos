@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Exceptions\MetaApiException;
+use App\Services\Meta\MetaCredentials;
 use Illuminate\Http\Client\PendingRequest;
 use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Cache;
@@ -30,6 +31,11 @@ class PagePostService
     ) {
         $this->token ??= (string) config('dynoads.meta.token');
         $this->pageId ??= (string) config('dynoads.meta.page_id');
+    }
+
+    public static function fromCredentials(MetaCredentials $credentials): self
+    {
+        return new self(token: $credentials->token, pageId: $credentials->pageId);
     }
 
     /**

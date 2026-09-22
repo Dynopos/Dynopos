@@ -216,10 +216,14 @@ it('/dashboard memaparkan belanja, lead dan kos/lead selepas refresh', function 
 });
 
 it('halaman /buat boleh dibuka tanpa ralat', function () {
+    masukSebagaiPemilik();
+
     $this->get('/buat')->assertOk()->assertSee('Buat iklan baru');
 });
 
 it('/ mengalihkan ke /buat', function () {
+    masukSebagaiPemilik();
+
     $this->get('/')->assertRedirect('/buat');
 });
 

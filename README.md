@@ -99,6 +99,37 @@ Dari 150+ campaign sejarah DynoPOS (kos/lead ~RM10–15). Semuanya duduk dalam
 Laravel Forge: lihat [`docs/forge.md`](docs/forge.md) — deploy script, tetapan PHP,
 dan cara isi `.env` melalui tab Environment.
 
+## Multi-user (Fasa 7a)
+
+Setiap peniaga ada akaun sendiri, kredential Meta sendiri, dan tidak nampak data
+peniaga lain.
+
+| Laluan | Untuk |
+|---|---|
+| `/daftar`, `/masuk` | akaun peniaga |
+| `/sambung` | token, ad account, Page dan nombor WhatsApp peniaga |
+
+Kredential ditentukan di satu tempat sahaja: `App\Services\Meta\MetaCredentials`.
+`.env` kekal berfungsi, tetapi **hanya untuk pemilik app** (`users.is_owner`).
+Peniaga lain tanpa `FbConnection` aktif tidak boleh membuat iklan — kalau tidak
+mereka akan membelanjakan duit pemilik.
+
+### Selepas deploy Fasa 7a — sekali sahaja
+
+Data sedia ada (ad_sets, poster_jobs) mempunyai `user_id` null dan tidak kelihatan
+kepada sesiapa sehingga dituntut:
+
+```bash
+php artisan migrate
+php artisan dynoads:owner borhanlimapos@gmail.com --name="Borhan"
+```
+
+Arahan itu mencipta akaun pemilik (kalau belum ada), menetapkan `is_owner`, dan
+menyerahkan semua baris yang belum bertuan kepadanya.
+
+Token disimpan berenkripsi (`APP_KEY`). Ia tidak pernah dipapar semula selepas
+disimpan, dan tidak pernah masuk ke dalam log atau mesej ralat — peraturan mutlak #8.
+
 ## Test
 
 ```bash
