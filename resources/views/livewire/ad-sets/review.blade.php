@@ -20,8 +20,7 @@
         @foreach ($adSet->variants as $variant)
             <div class="card overflow-hidden">
                 <div class="relative">
-                    <img src="{{ Storage::disk('public')->url($variant->image_path) }}"
-                         alt="Iklan {{ $variant->position }}" class="aspect-square w-full object-cover">
+                    <x-creative-media :variant="$variant" class="aspect-square w-full object-cover" />
                     <span class="absolute left-3 top-3 rounded-lg bg-black/65 px-2 py-1 text-[11px] font-bold backdrop-blur-sm">
                         Iklan #{{ $variant->position }}
                     </span>

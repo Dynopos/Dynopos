@@ -66,13 +66,13 @@ it('/buat menerima 2 gambar dan menyimpan set dengan variant siap crop', functio
 
 it('/buat menolak lebih dari 4 gambar dan nombor telefon salah format', function () {
     Livewire::test(Create::class)
-        ->set('images', collect(range(1, 5))->map(fn ($i) => UploadedFile::fake()->image("{$i}.jpg"))->all())
+        ->set('media', collect(range(1, 5))->map(fn ($i) => UploadedFile::fake()->image("{$i}.jpg"))->all())
         ->set('upload', [])
         ->set('problem', 'kira duit lambat')
         ->set('offer', 'sistem POS')
         ->set('phone', '+60187922844')
         ->call('save')
-        ->assertHasErrors(['images', 'phone']);
+        ->assertHasErrors(['media', 'phone']);
 
     expect(AdSet::count())->toBe(0);
 });
@@ -83,11 +83,11 @@ it('memilih gambar satu-satu MENAMBAH, bukan menggantikan', function () {
     // tanpa tahu kenapa. Itu bug yang ujian ini menjaga.
     Livewire::test(Create::class)
         ->set('upload', [UploadedFile::fake()->image('satu.jpg')])
-        ->assertCount('images', 1)
+        ->assertCount('media', 1)
         ->set('upload', [UploadedFile::fake()->image('dua.jpg')])
-        ->assertCount('images', 2)
+        ->assertCount('media', 2)
         ->set('upload', [UploadedFile::fake()->image('tiga.jpg')])
-        ->assertCount('images', 3)
+        ->assertCount('media', 3)
         // Kotak pilih fail dikosongkan supaya pilihan seterusnya bermula bersih.
         ->assertCount('upload', 0);
 });
@@ -99,7 +99,7 @@ it('tidak menerima gambar melebihi had walaupun dipilih berkali-kali', function 
         $component->set('upload', [UploadedFile::fake()->image("{$i}.jpg")]);
     }
 
-    $component->assertCount('images', config('dynoads.creative.max_images'));
+    $component->assertCount('media', config('dynoads.creative.max_creatives'));
 });
 
 it('boleh membuang satu gambar dan nombor iklan disusun semula', function () {
@@ -109,8 +109,8 @@ it('boleh membuang satu gambar dan nombor iklan disusun semula', function () {
             UploadedFile::fake()->image('b.jpg'),
             UploadedFile::fake()->image('c.jpg'),
         ])
-        ->call('removeImage', 1)
-        ->assertCount('images', 2);
+        ->call('removeMedia', 1)
+        ->assertCount('media', 2);
 });
 
 it('boleh pilih beberapa negeri, dan Meta terima kesemuanya', function () {

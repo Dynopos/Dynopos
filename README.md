@@ -200,46 +200,51 @@ Bila pembekal gagal atau kunci belum diisi, app memulangkan caption asas yang
 boleh diedit — dan `/semak` memaparkan amaran yang menyebut kunci mana yang
 hilang. Fallback tidak pernah senyap.
 
-## Enjin poster
+## Gambar dan video
 
-`/poster` — peniaga upload gambar produk, app buang latarnya dan letak atas
-suasana yang kemas, teks dari HTML.
+Peniaga muat naik gambar, video, atau campuran kedua-duanya — sehingga empat.
+**Satu media = satu campaign.** Itu asas split test: yang menang dikekalkan, yang
+mahal dipause.
 
-Pembahagian kerja yang tidak boleh dilanggar (peraturan mutlak #7):
+| | Gambar | Video |
+|---|---|---|
+| Diproses | dipotong persegi 1080×1080 (GD) | disimpan seadanya |
+| Ke Meta | `/adimages` → `image_hash` | `/advideos` → `video_id` |
+| Creative | `object_story_spec.link_data` | `object_story_spec.video_data` |
+| Thumbnail | — | medan `picture` dari Meta |
 
-| Siapa | Buat apa |
-|---|---|
-| Peniaga | gambar produk sebenar mereka |
-| AI | latar/suasana sahaja — tidak pernah produk, tidak pernah teks |
-| HTML | setiap patah teks pada poster |
+Video tidak dipotong persegi. Pelayan ini tiada ffmpeg, dan Meta menerima nisbah
+selain 1:1 untuk video — memaksa persegi bermakna memotong kepala orang dalam
+video menegak yang peniaga rakam sendiri.
 
-AI tidak pernah mereka-reka produk yang peniaga tidak jual, dan tidak pernah
-menulis teks — model imej tidak boleh dipercayai mengeja Melayu.
+### Video diproses secara tidak segerak
 
-**Buang latar** guna `GdRemover` secara lalai: isian banjir dari empat penjuru,
-tiada API, tiada kos. Ia memeriksa sempadan gambar dahulu — kalau latar tidak
-rata, ia mengalah dan memulangkan null, dan poster membingkaikan gambar asal
-sebagai kad. Hasil separuh jadi yang bercalar lebih teruk daripada tidak mencuba.
-Tukar ke pembekal API dengan `DYNOADS_REMOVER_DRIVER=http`.
+`/advideos` memulangkan `video_id` serta-merta, tetapi creative yang dibuat
+sebelum Meta selesai memproses akan ditolak. `MetaAdsService::waitForVideo()`
+menunggu sehingga `status.video_status` menjadi `ready` (had masa dalam
+`config/dynoads.php`). Tanpa itu, iklan video gagal secara rawak bergantung pada
+saiz fail dan beban Meta.
 
-**Latar** guna `StockDriver` secara lalai (dijana dengan GD, percuma). Tetapkan
-`DYNOADS_BG_DRIVER=ai` + endpoint untuk latar AI; kegagalan jatuh balik ke stock.
+> **Belum disahkan terhadap dokumentasi rasmi Meta.** Bentuk payload video
+> datang dari sumber sekunder kerana `developers.facebook.com` tidak boleh
+> dicapai dari persekitaran pembangunan. Peraturan mutlak #3 mengehadkan
+> kerosakannya — semua dibuat PAUSED, jadi bentuk yang salah gagal dengan ralat
+> yang kelihatan semasa Approve, sebelum satu sen dibelanjakan. Uji dengan satu
+> video sebenar sebelum mempercayainya.
 
-Render melalui Playwright — lihat [`docs/forge.md`](docs/forge.md) untuk
-pemasangan Chromium sekali sahaja pada pelayan.
+### Had saiz
 
-### Poster terus jadi iklan
+Had sebenar ditentukan oleh `upload_max_filesize` dan `post_max_size` dalam
+php.ini, bukan oleh config app. Video telefon 30 saat selalunya 20–60 MB, jadi
+had lalai 8 MB tidak mencukupi. Skrin Buat memberi amaran awal bila had pelayan
+terlalu ketat untuk video — naikkan di Forge → server → PHP.
 
-Selepas jana poster, tekan **Guna poster ni untuk iklan**. Poster masuk senarai
-(maksimum 4), dan `/buat` memaparkannya sebagai creative bersama gambar yang
-dimuat naik. Tiada muat turun, tiada muat naik semula.
+### Enjin poster telah dibuang
 
-Poster **disalin** ke folder set iklan, bukan dirujuk. Poster boleh dijana semula
-atau dipadam kemudian; creative iklan mesti kekal seperti masa ia dilancarkan.
-
-`ad_variants.source_type` merekod asal setiap creative (`upload`, `poster` atau
-`existing_post`) supaya laporan Fasa 5 boleh membandingkan prestasi antara
-ketiga-tiganya.
+App tidak lagi menjana gambar atau poster. Ia melambatkan setiap permintaan dan
+peniaga sudah pun ada gambar sendiri. Jadual `poster_jobs` dan baris
+`source_type=poster` **dikekalkan sebagai sejarah** — campaign itu betul-betul
+berjalan dan angkanya masih bermakna untuk perbandingan.
 
 ## Guna posting sedia ada
 

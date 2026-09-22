@@ -52,14 +52,10 @@ class AdLauncher
         );
 
         try {
-            $hash = null;
-
-            // Variant daripada posting sedia ada tiada gambar untuk dimuat naik:
-            // Meta sudah memegang gambar itu di dalam posting asal.
-            if (! $variant->isFromExistingPost()) {
-                $hash = $variant->meta_image_hash ?: $this->meta->uploadImage($this->absolutePath($variant->image_path));
-                $variant->update(['meta_image_hash' => $hash]);
-            }
+            // Media dimuat naik DAHULU, sebelum campaign dibuat. Fail rosak atau
+            // video yang Meta tolak sepatutnya gagal sebelum ada campaign
+            // separuh siap tergantung dalam akaun peniaga.
+            $this->uploadMedia($variant);
 
             $campaignId = $this->meta->createCampaign($name, $set->daily_budget_sen);
             $variant->update(['meta_campaign_id' => $campaignId]);
@@ -70,9 +66,7 @@ class AdLauncher
             $adsetId = $this->meta->createAdSet($campaignId, $name, $set->regionKeyList(), $set->phone);
             $variant->update(['meta_adset_id' => $adsetId]);
 
-            $creativeId = $variant->isFromExistingPost()
-                ? $this->creativeFromPost($variant, $name)
-                : $this->meta->createCreative($name, (string) $hash, (string) $variant->caption);
+            $creativeId = $this->creativeFor($variant, $name);
 
             $variant->update(['meta_creative_id' => $creativeId]);
 
@@ -208,6 +202,62 @@ class AdLauncher
             : $action->fail(implode(' | ', $failures));
 
         return $set->refresh();
+    }
+
+    /**
+     * Hantar fail ke Meta dan simpan rujukannya.
+     *
+     * Variant daripada posting sedia ada dilangkau: Meta sudah memegang media
+     * itu di dalam posting asal.
+     *
+     * Video melalui laluan yang berbeza sepenuhnya daripada gambar — /advideos
+     * dan bukan /adimages, dan hasilnya perlu DITUNGGU kerana Meta memprosesnya
+     * secara tidak segerak.
+     */
+    protected function uploadMedia(AdVariant $variant): void
+    {
+        if ($variant->isFromExistingPost()) {
+            return;
+        }
+
+        if ($variant->isVideo()) {
+            $videoId = $variant->meta_video_id
+                ?: $this->meta->uploadVideo($this->absolutePath((string) $variant->video_path));
+
+            $variant->update(['meta_video_id' => $videoId]);
+
+            $ready = $this->meta->waitForVideo($videoId);
+
+            if (filled($ready['thumbnail'])) {
+                $variant->update(['meta_thumbnail_url' => $ready['thumbnail']]);
+            }
+
+            return;
+        }
+
+        $variant->update([
+            'meta_image_hash' => $variant->meta_image_hash
+                ?: $this->meta->uploadImage($this->absolutePath((string) $variant->image_path)),
+        ]);
+    }
+
+    /** Tiga jenis creative, satu tempat yang memilih antaranya. */
+    protected function creativeFor(AdVariant $variant, string $name): string
+    {
+        if ($variant->isFromExistingPost()) {
+            return $this->creativeFromPost($variant, $name);
+        }
+
+        if ($variant->isVideo()) {
+            return $this->meta->createVideoCreative(
+                $name,
+                (string) $variant->meta_video_id,
+                (string) $variant->caption,
+                $variant->meta_thumbnail_url,
+            );
+        }
+
+        return $this->meta->createCreative($name, (string) $variant->meta_image_hash, (string) $variant->caption);
     }
 
     /**

@@ -32,9 +32,6 @@
         "exclude-from-classmap": [
             "vendor/laravel/pint/app/",
             "vendor/laravel/pint/tests/"
-        ],
-        "files": [
-            "app/Support/poster.php"
         ]
     },
     "autoload-dev": {

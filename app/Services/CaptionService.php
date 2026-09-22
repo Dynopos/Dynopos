@@ -24,7 +24,7 @@ class CaptionService
      */
     public function generate(string $problem, string $offer, int $count = 1): CaptionSet
     {
-        $count = max(1, min($count, (int) config('dynoads.creative.max_images')));
+        $count = max(1, min($count, (int) config('dynoads.creative.max_creatives')));
         $attempts = (int) config('dynoads.caption.retries') + 1;
         $last = null;
 

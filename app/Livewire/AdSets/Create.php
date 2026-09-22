@@ -8,8 +8,7 @@ use App\Models\AdVariant;
 use App\Services\ImageProcessor;
 use App\Services\Meta\MetaCredentials;
 use App\Services\MetaAdsService;
-use App\Services\Poster\PosterBasket;
-use App\Services\Poster\ProductHandoff;
+use App\Support\Media;
 use App\Support\Uploads;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Facades\Storage;
@@ -26,17 +25,24 @@ class Create extends Component
     use WithFileUploads;
 
     /**
-     * Kotak pilih fail. Atas telefon, galeri selalunya pulangkan satu gambar
+     * Kotak pilih fail. Atas telefon, galeri selalunya pulangkan satu fail
      * setiap kali — jadi medan ini dikosongkan setiap kali dan isinya
-     * dipindahkan ke $images. Kalau tidak, pilihan kedua MENGGANTIKAN yang
-     * pertama dan peniaga hanya dapat satu gambar tanpa tahu kenapa.
+     * dipindahkan ke $media. Kalau tidak, pilihan kedua MENGGANTIKAN yang
+     * pertama dan peniaga hanya dapat satu media tanpa tahu kenapa.
      *
      * @var array<int, TemporaryUploadedFile>
      */
     public array $upload = [];
 
-    /** Gambar yang dikumpul setakat ini. @var array<int, TemporaryUploadedFile> */
-    public array $images = [];
+    /**
+     * Gambar dan video yang dikumpul setakat ini.
+     *
+     * Satu senarai, bukan dua. Peniaga fikir "empat iklan", bukan "dua gambar
+     * dan dua video", dan satu media tetap satu campaign tanpa mengira jenis.
+     *
+     * @var array<int, TemporaryUploadedFile>
+     */
+    public array $media = [];
 
     public string $problem = '';
 
@@ -88,45 +94,32 @@ class Create extends Component
         };
     }
 
-    /** Kumpul gambar merentas beberapa kali pilih, jangan ganti. */
+    /** Kumpul media merentas beberapa kali pilih, jangan ganti. */
     public function updatedUpload(): void
     {
-        $max = (int) config('dynoads.creative.max_images');
+        $max = (int) config('dynoads.creative.max_creatives');
 
         foreach ($this->upload as $file) {
             if ($this->creativeCount() >= $max) {
                 break;
             }
 
-            $this->images[] = $file;
+            if ($problem = Media::reject($file)) {
+                $this->addError('media', $problem);
+
+                continue;
+            }
+
+            $this->media[] = $file;
         }
 
         $this->upload = [];
-        $this->resetValidation('images');
     }
 
-    public function removeImage(int $index): void
+    public function removeMedia(int $index): void
     {
-        unset($this->images[$index]);
-        $this->images = array_values($this->images);
-    }
-
-    /**
-     * Bawa gambar ni ke skrin poster sebagai gambar produk.
-     *
-     * Ia dikeluarkan dari senarai gambar biasa — kalau tidak, peniaga akan
-     * berakhir dengan dua creative dari satu gambar: yang mentah dan posternya.
-     */
-    public function makePoster(int $index, ProductHandoff $handoff)
-    {
-        if (! isset($this->images[$index])) {
-            return null;
-        }
-
-        $handoff->put($this->images[$index]->getRealPath());
-        $this->removeImage($index);
-
-        return $this->redirectRoute('posters.create', navigate: true);
+        unset($this->media[$index]);
+        $this->media = array_values($this->media);
     }
 
     public function toggleRegion(string $key): void
@@ -141,10 +134,9 @@ class Create extends Component
         $this->regionKeys = [];
     }
 
-    /** Poster dari /poster dikira sebagai creative, sama seperti gambar upload. */
-    public function posterJobs()
+    public function isVideo(int $index): bool
     {
-        return app(PosterBasket::class)->jobs();
+        return isset($this->media[$index]) && Media::isVideo($this->media[$index]);
     }
 
     public function uploadLimit(): string
@@ -157,14 +149,21 @@ class Create extends Component
         return Uploads::tooTightForPhonePhotos();
     }
 
-    public function creativeCount(): int
+    /**
+     * Had pelayan terlalu ketat untuk video telefon biasa?
+     *
+     * Video 30 saat dari telefon selalunya 20–60 MB. Kalau php.ini hanya
+     * membenarkan 8 MB, butang "tambah video" adalah janji kosong — jadi
+     * skrin memberitahu awal, bukan selepas peniaga menunggu muat naik gagal.
+     */
+    public function videoLimitTooTight(): bool
     {
-        return count($this->images) + $this->posterJobs()->count();
+        return Uploads::maxKilobytes(Media::maxVideoKilobytes()) < 25600;
     }
 
-    public function removePoster(int $posterJobId, PosterBasket $basket): void
+    public function creativeCount(): int
     {
-        $basket->remove($posterJobId);
+        return count($this->media);
     }
 
     protected function rules(): array
@@ -173,8 +172,7 @@ class Create extends Component
         $max = intdiv((int) config('dynoads.budget.max_daily_sen'), 100);
 
         return [
-            'images' => 'array|max:'.config('dynoads.creative.max_images'),
-            'images.*' => 'image|max:'.Uploads::maxKilobytes(),
+            'media' => 'array|max:'.config('dynoads.creative.max_creatives'),
             'problem' => 'required|string|min:5|max:200',
             'offer' => 'required|string|min:5|max:200',
             'phone' => ['required', 'regex:/^60\d{8,11}$/'],
@@ -187,13 +185,8 @@ class Create extends Component
     protected function messages(): array
     {
         return [
-            'images.required' => 'Muat naik sekurang-kurangnya satu gambar.',
-            'creatives.required' => 'Perlukan sekurang-kurangnya satu gambar atau poster.',
-            'images.max' => 'Maksimum 4 gambar. Lebih dari tu susah nak baca hasilnya.',
-            'images.*.image' => 'Fail kena gambar (JPG, PNG atau WEBP).',
-            'images.*.uploaded' => 'Gambar gagal dimuat naik. Biasanya kerana saiznya melebihi had pelayan ('.Uploads::maxLabel().').',
-            'images.*.max' => 'Gambar terlalu besar. Had pelayan ni :max KB.',
-            'upload.*.uploaded' => 'Gambar gagal dimuat naik. Biasanya kerana saiznya melebihi had pelayan ('.Uploads::maxLabel().').',
+            'media.max' => 'Maksimum 4 media. Lebih dari tu susah nak baca hasilnya.',
+            'upload.*.uploaded' => 'Fail gagal dimuat naik. Biasanya kerana saiznya melebihi had pelayan ('.Uploads::maxLabel().').',
             'problem.required' => 'Tulis masalah pelanggan anda.',
             'offer.required' => 'Tulis apa yang anda tawarkan.',
             'phone.regex' => 'Nombor WhatsApp kena format 60XXXXXXXXX, tiada tanda +.',
@@ -205,20 +198,12 @@ class Create extends Component
         return max($this->creativeCount(), 1) * $this->budgetRm;
     }
 
-    public function save(ImageProcessor $processor, PosterBasket $basket)
+    public function save(ImageProcessor $processor)
     {
         $this->validate();
 
-        $posters = $basket->jobs();
-
-        if ($this->images === [] && $posters->isEmpty()) {
-            $this->addError('images', 'Perlukan sekurang-kurangnya satu gambar atau poster.');
-
-            return null;
-        }
-
-        if (count($this->images) + $posters->count() > (int) config('dynoads.creative.max_images')) {
-            $this->addError('images', 'Maksimum '.config('dynoads.creative.max_images').' creative semuanya, termasuk poster.');
+        if ($this->media === []) {
+            $this->addError('media', 'Tambah sekurang-kurangnya satu gambar atau video.');
 
             return null;
         }
@@ -237,41 +222,57 @@ class Create extends Component
         $position = 0;
         $disk = Storage::disk('public');
 
-        // Poster dahulu — itu yang peniaga sengaja reka.
-        foreach ($posters as $job) {
-            $relative = "dynoads/{$set->id}/".(++$position).'.jpg';
-            $disk->makeDirectory(dirname($relative));
+        foreach (array_values($this->media) as $file) {
+            $position++;
+            $disk->makeDirectory("dynoads/{$set->id}");
 
-            // Salin, bukan rujuk: poster boleh dijana semula atau dipadam,
-            // tetapi creative iklan mesti kekal seperti masa ia dilancarkan.
-            $processor->squareCrop($disk->path($job->output_path), $disk->path($relative));
-
-            AdVariant::create([
-                'ad_set_id' => $set->id,
-                'position' => $position,
-                'source_type' => 'poster',
-                'poster_job_id' => $job->id,
-                'image_path' => $relative,
-            ]);
+            AdVariant::create(
+                Media::isVideo($file)
+                    ? $this->storeVideo($file, $set, $position)
+                    : $this->storeImage($file, $set, $position, $processor)
+            );
         }
-
-        foreach (array_values($this->images) as $upload) {
-            $relative = "dynoads/{$set->id}/".(++$position).'.jpg';
-            $disk->makeDirectory(dirname($relative));
-
-            $processor->squareCrop($upload->getRealPath(), $disk->path($relative));
-
-            AdVariant::create([
-                'ad_set_id' => $set->id,
-                'position' => $position,
-                'source_type' => 'upload',
-                'image_path' => $relative,
-            ]);
-        }
-
-        $basket->clear();
 
         return $this->redirectRoute('ad-sets.review', ['adSet' => $set], navigate: true);
+    }
+
+    /** Gambar dipotong 1080×1080 seperti sebelum ini. */
+    protected function storeImage(TemporaryUploadedFile $file, AdSet $set, int $position, ImageProcessor $processor): array
+    {
+        $relative = "dynoads/{$set->id}/{$position}.jpg";
+
+        $processor->squareCrop($file->getRealPath(), Storage::disk('public')->path($relative));
+
+        return [
+            'ad_set_id' => $set->id,
+            'position' => $position,
+            'source_type' => 'upload',
+            'media_type' => 'image',
+            'image_path' => $relative,
+        ];
+    }
+
+    /**
+     * Video disimpan seadanya.
+     *
+     * Tiada crop, tiada transcode: pelayan ini tiada ffmpeg, dan Meta sendiri
+     * menerima nisbah selain persegi untuk video. Memaksa 1:1 di sini bermakna
+     * memotong kepala orang dalam video menegak yang peniaga rakam sendiri.
+     */
+    protected function storeVideo(TemporaryUploadedFile $file, AdSet $set, int $position): array
+    {
+        $extension = strtolower($file->getClientOriginalExtension() ?: 'mp4');
+        $relative = "dynoads/{$set->id}/{$position}.{$extension}";
+
+        Storage::disk('public')->put($relative, file_get_contents($file->getRealPath()));
+
+        return [
+            'ad_set_id' => $set->id,
+            'position' => $position,
+            'source_type' => 'upload',
+            'media_type' => 'video',
+            'video_path' => $relative,
+        ];
     }
 
     /** @return array<int, string> */

@@ -1,28 +1,33 @@
 <div>
     <h1 class="text-[28px] font-extrabold leading-tight tracking-tight">Buat iklan baru</h1>
     <p class="mt-1.5 text-sm leading-relaxed t-muted">
-        Satu gambar = satu iklan. Kita bandingkan gambar mana yang paling murah kosnya.
+        Satu media = satu iklan. Kita bandingkan mana yang paling murah kosnya.
     </p>
 
     <form wire:submit="save" class="mt-7 space-y-7">
 
-        {{-- Gambar --}}
+        {{-- Media --}}
         <div>
             <div class="flex items-baseline justify-between">
-                <span class="label">Gambar iklan</span>
-                <span class="text-xs font-semibold t-faint">{{ $this->creativeCount() }} / {{ config('dynoads.creative.max_images') }}</span>
+                <span class="label">Gambar atau video</span>
+                <span class="text-xs font-semibold t-faint">{{ $this->creativeCount() }} / {{ config('dynoads.creative.max_creatives') }}</span>
             </div>
 
-            @php $posters = $this->posterJobs(); @endphp
-
-            @if ($posters->isNotEmpty())
+            @if ($media)
                 <div class="mt-3 grid grid-cols-4 gap-2">
-                    @foreach ($posters as $job)
+                    @foreach ($media as $i => $file)
                         <div class="relative">
-                            <img src="{{ Storage::disk(config('dynoads.poster.disk'))->url($job->output_path) }}" alt=""
-                                 class="aspect-square w-full rounded-xl border border-current/10 object-cover">
-                            <span class="absolute left-1 top-1 rounded-md bg-dyno-gradient px-1.5 text-[10px] font-bold text-white">POSTER</span>
-                            <button type="button" wire:click="removePoster({{ $job->id }})" aria-label="Buang poster"
+                            @if ($this->isVideo($i))
+                                <video src="{{ $file->temporaryUrl() }}" muted playsinline preload="metadata"
+                                       class="aspect-square w-full rounded-xl border border-current/10 object-cover"></video>
+                                <span class="absolute left-1 top-1 rounded-md bg-dyno-gradient px-1.5 text-[10px] font-bold text-white">VIDEO</span>
+                            @else
+                                <img src="{{ $file->temporaryUrl() }}" alt=""
+                                     class="aspect-square w-full rounded-xl border border-current/10 object-cover">
+                                <span class="absolute left-1 top-1 rounded-md bg-black/70 px-1.5 text-[10px] font-bold text-white">#{{ $i + 1 }}</span>
+                            @endif
+
+                            <button type="button" wire:click="removeMedia({{ $i }})" aria-label="Buang media {{ $i + 1 }}"
                                     class="absolute -right-1.5 -top-1.5 flex h-6 w-6 items-center justify-center rounded-full border border-current/20 text-xs font-bold"
                                     style="background-color: rgb(var(--surface-soft))">&times;</button>
                         </div>
@@ -30,65 +35,43 @@
                 </div>
             @endif
 
-            @if ($images)
-                <div class="mt-3 grid grid-cols-4 gap-2">
-                    @foreach ($images as $i => $image)
-                        <div>
-                            <div class="relative">
-                                <img src="{{ $image->temporaryUrl() }}" alt=""
-                                     class="aspect-square w-full rounded-xl border border-current/10 object-cover">
-                                <span class="absolute left-1 top-1 rounded-md bg-black/70 px-1.5 text-[10px] font-bold text-white">#{{ $i + 1 }}</span>
-                                <button type="button" wire:click="removeImage({{ $i }})" aria-label="Buang gambar {{ $i + 1 }}"
-                                        class="absolute -right-1.5 -top-1.5 flex h-6 w-6 items-center justify-center rounded-full border border-current/20 text-xs font-bold"
-                                        style="background-color: rgb(var(--surface-soft))">&times;</button>
-                            </div>
-                            <button type="button" wire:click="makePoster({{ $i }})"
-                                    class="mt-1.5 w-full rounded-lg border border-current/15 px-1 py-1 text-[10px] font-bold leading-tight t-muted">
-                                Jadikan<br>poster
-                            </button>
-                        </div>
-                    @endforeach
-                </div>
-            @endif
-
-            @if ($this->creativeCount() < config('dynoads.creative.max_images'))
+            @if ($this->creativeCount() < config('dynoads.creative.max_creatives'))
                 <label class="mt-3 flex cursor-pointer items-center justify-center gap-2 rounded-xl border border-dashed border-current/20 bg-current/[0.03] px-4 py-5 text-sm font-semibold t-muted">
                     <span wire:loading.remove wire:target="upload">
-                        {{ $images ? '+ Tambah gambar lagi' : '+ Pilih gambar' }}
+                        {{ $media ? '+ Tambah lagi' : '+ Tambah gambar atau video' }}
                     </span>
                     <span wire:loading wire:target="upload" class="text-dyno-magenta dark:text-dyno-pink">Memuat naik…</span>
-                    <input type="file" wire:model="upload" multiple accept="image/*" class="hidden">
+                    <input type="file" wire:model="upload" multiple
+                           accept="{{ \App\Support\Media::acceptAttribute() }}" class="hidden">
                 </label>
                 <p class="hint">
-                    Boleh pilih satu-satu. Setiap gambar ditambah, bukan menggantikan yang sebelumnya.
-                    Semua dipotong jadi persegi 1080&times;1080. Had saiz {{ $this->uploadLimit() }} setiap satu.
+                    Boleh pilih satu-satu. Setiap satu ditambah, bukan menggantikan yang sebelumnya.
+                    Gambar dipotong persegi 1080&times;1080; video dihantar seadanya.
+                    Had saiz {{ $this->uploadLimit() }} setiap satu.
                 </p>
 
-            @if ($this->uploadLimitTooTight())
-                <div class="mt-2 rounded-xl border border-amber-500/30 bg-amber-500/10 p-3 text-xs leading-relaxed text-amber-800 dark:text-amber-200">
-                    Pelayan ni hanya benarkan gambar sehingga <span class="font-semibold">{{ $this->uploadLimit() }}</span>.
-                    Gambar telefon selalunya lebih besar daripada tu, jadi muat naik akan gagal.
-                    <span class="mt-1.5 block text-amber-700/80 dark:text-amber-200/70">
-                        Pembetulan kekal: naikkan <code>upload_max_filesize</code> dan <code>post_max_size</code>
-                        dalam Forge &rarr; server &rarr; PHP. Sementara tu, kecilkan gambar dulu.
-                    </span>
-                </div>
-            @endif
-
-                <a href="{{ route('posters.create') }}" wire:navigate
-                   class="card mt-3 flex items-center gap-3 p-3.5">
-                    <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-dyno-gradient text-lg">&#10022;</span>
-                    <span class="min-w-0 flex-1">
-                        <span class="block text-sm font-bold">Buat poster dulu</span>
-                        <span class="block text-xs leading-relaxed t-muted">
-                            Gambar produk &rarr; latar dibuang &rarr; teks besar. Lebih menonjol daripada gambar mentah.
+                @if ($this->uploadLimitTooTight())
+                    <div class="mt-2 rounded-xl border border-amber-500/30 bg-amber-500/10 p-3 text-xs leading-relaxed text-amber-800 dark:text-amber-200">
+                        Pelayan ni hanya benarkan fail sehingga <span class="font-semibold">{{ $this->uploadLimit() }}</span>.
+                        Gambar telefon selalunya lebih besar daripada tu, jadi muat naik akan gagal.
+                        <span class="mt-1.5 block text-amber-700/80 dark:text-amber-200/70">
+                            Pembetulan kekal: naikkan <code>upload_max_filesize</code> dan <code>post_max_size</code>
+                            dalam Forge &rarr; server &rarr; PHP. Sementara tu, kecilkan fail dulu.
                         </span>
-                    </span>
-                    <span class="t-faint">&rarr;</span>
-                </a>
+                    </div>
+                @elseif ($this->videoLimitTooTight())
+                    <div class="mt-2 rounded-xl border border-amber-500/30 bg-amber-500/10 p-3 text-xs leading-relaxed text-amber-800 dark:text-amber-200">
+                        Gambar tiada masalah, tapi pelayan ni hadkan fail kepada
+                        <span class="font-semibold">{{ $this->uploadLimit() }}</span> — video telefon selalunya lebih besar.
+                        <span class="mt-1.5 block text-amber-700/80 dark:text-amber-200/70">
+                            Naikkan <code>upload_max_filesize</code> dan <code>post_max_size</code>
+                            dalam Forge &rarr; server &rarr; PHP kalau nak guna video.
+                        </span>
+                    </div>
+                @endif
 
                 <a href="{{ route('ad-sets.existing-posts') }}" wire:navigate
-                   class="card mt-2 flex items-center gap-3 p-3.5">
+                   class="card mt-3 flex items-center gap-3 p-3.5">
                     <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-dyno-gradient text-lg">&#128241;</span>
                     <span class="min-w-0 flex-1">
                         <span class="block text-sm font-bold">Guna posting sedia ada</span>
@@ -102,8 +85,8 @@
                 <p class="hint">Sudah cukup 4. Buang satu kalau nak tukar.</p>
             @endif
 
-            @error('images') <p class="err">{{ $message }}</p> @enderror
-            @error('images.*') <p class="err">{{ $message }}</p> @enderror
+            @error('media') <p class="err">{{ $message }}</p> @enderror
+            @error('upload.*') <p class="err">{{ $message }}</p> @enderror
         </div>
 
         {{-- Masalah --}}
