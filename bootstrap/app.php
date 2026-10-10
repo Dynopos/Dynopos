@@ -20,6 +20,10 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->redirectGuestsTo(fn () => route('masuk'));
         $middleware->redirectUsersTo('/buat');
 
+        // Meta POST ke endpoint ini dari pelayan mereka; tiada sesi, jadi
+        // tiada token CSRF. Tandatangan HMAC yang menggantikannya.
+        $middleware->validateCsrfTokens(except: ['meta/data-deletion']);
+
         $middleware->alias([
             'meta.connected' => EnsureMetaConnected::class,
         ]);

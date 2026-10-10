@@ -81,6 +81,11 @@
         <footer class="px-6 pb-8 pt-2 text-center text-[11px] leading-relaxed t-faint">
             App bantu optimize iklan. Ia tak jamin lead.<br>
             Tiada duit dibelanjakan sebelum anda tekan RUN.
+            <span class="mt-2 block">
+                <a href="{{ route('privasi') }}" class="underline">Notis Privasi</a>
+                &middot;
+                <a href="{{ route('terma') }}" class="underline">Terma</a>
+            </span>
         </footer>
     </div>
 

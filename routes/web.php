@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\MetaDataDeletionController;
 use App\Livewire\AdSets\Create;
 use App\Livewire\AdSets\Dashboard;
 use App\Livewire\AdSets\ExistingPosts;
@@ -11,6 +12,26 @@ use App\Livewire\Settings\Connect;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
+
+/*
+ * Halaman awam. Meta mewajibkan Privacy Policy dan Terms boleh dicapai TANPA
+ * log masuk sebelum App Review — penyemak mereka membukanya sendiri. PDPA Akta
+ * 709 pula mewajibkan notis itu boleh dibaca pada bila-bila masa, bukan hanya
+ * oleh pengguna berdaftar.
+ */
+Route::view('/privasi', 'legal.privasi')->name('privasi');
+Route::view('/terma', 'legal.terma')->name('terma');
+
+/*
+ * Callback pemadaman data Meta. Tiada auth, tiada CSRF — Meta yang memanggil.
+ * Yang menjaganya ialah tandatangan HMAC pada signed_request; lihat
+ * App\Services\Meta\SignedRequest.
+ */
+Route::post('/meta/data-deletion', MetaDataDeletionController::class)
+    ->name('meta.data-deletion');
+
+Route::get('/meta/data-deletion/status/{code}', [MetaDataDeletionController::class, 'status'])
+    ->name('meta.data-deletion.status');
 
 Route::middleware('guest')->group(function () {
     Route::get('/masuk', Login::class)->name('masuk');

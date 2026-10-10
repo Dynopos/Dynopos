@@ -94,6 +94,51 @@ Dari 150+ campaign sejarah DynoPOS (kos/lead ~RM10–15). Semuanya duduk dalam
 
 ---
 
+## Halaman undang-undang dan PDPA
+
+| Laluan | Untuk |
+|---|---|
+| `/privasi` | Notis Privasi — Akta 709 s.7 |
+| `/terma` | Terma Perkhidmatan |
+| `POST /meta/data-deletion` | Callback pemadaman data Meta |
+| `/meta/data-deletion/status/{kod}` | Status permintaan pemadaman |
+
+Ketiga-tiga yang pertama ialah **prasyarat App Review Meta**. Dua yang pertama juga
+kewajipan PDPA secara berasingan — anda perlukannya walaupun tiada Meta.
+
+### Isi butiran syarikat sebelum App Review
+
+Notis Privasi mengambil butiran Data User dari `.env`, bukan dari kod:
+
+```
+COMPANY_NAME=
+COMPANY_SSM=
+COMPANY_ADDRESS=
+COMPANY_EMAIL=
+COMPANY_PHONE=
+```
+
+Selagi ia kosong, `/privasi` memaparkan amaran kuning yang menyatakan notis itu belum
+lengkap. Itu disengajakan: notis yang membawa butiran syarikat yang **direka** lebih
+teruk daripada tiada notis — ia menipu pengguna dan tidak melindungi sesiapa.
+
+### Callback pemadaman data
+
+`META_APP_SECRET` wajib diisi. Endpoint itu terdedah kepada internet terbuka tanpa log
+masuk dan tanpa CSRF — satu-satunya yang menjaganya ialah tandatangan HMAC pada
+`signed_request`. Tanpa rahsia app, ia **menolak semua permintaan**. Gagal tertutup,
+bukan gagal terbuka.
+
+Yang dipadam: `FbConnection` — token, id akaun iklan, id dan nama Page, nombor WhatsApp.
+Yang **tidak** dipadam: set iklan dan metrik. Itu rekod perniagaan peniaga sendiri, dan
+memusnahkannya atas satu callback akan menghapuskan sejarah yang dia mungkin perlukan.
+Halaman status menerangkan perbezaan ini.
+
+Dalam tetapan app Meta, isi:
+- **Privacy Policy URL** → `https://dynoads.my/privasi`
+- **Terms of Service URL** → `https://dynoads.my/terma`
+- **User Data Deletion** → Data Deletion Request URL → `https://dynoads.my/meta/data-deletion`
+
 ## Deploy
 
 Laravel Forge: lihat [`docs/forge.md`](docs/forge.md) — deploy script, tetapan PHP,

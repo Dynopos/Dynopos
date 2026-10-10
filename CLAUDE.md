@@ -19,6 +19,8 @@ Pengguna pertama: DynoPOS (pemilik repo).
 - **Fasa 3 (Video) — SIAP, BELUM DISAHKAN DI META.** Gambar dan video, sehingga empat.
   Lihat amaran dalam Fasa 3 — lancar satu iklan video sebenar sebelum menjualnya.
 - **Enjin poster dan latar AI — DIBUANG.** Kod dipadam; data dikekalkan. Lihat nota arah.
+- **Prasyarat App Review — SIAP.** /privasi, /terma, dan callback pemadaman data Meta.
+  Isi `COMPANY_*` dalam .env sebelum hantar App Review.
 - Fasa 2 seterusnya: **rekod `hook`** — sudut copy mana yang menang, bukan hanya nombor.
 - Satu PR satu fasa. Jangan gabung.
 
@@ -83,6 +85,9 @@ app/Support/Phone.php                      nombor Malaysia → 60XXXXXXXXX
 app/Livewire/AdSets/{Create,Review,Run,Dashboard,ExistingPosts}.php
 app/Livewire/Auth/{Login,Register}.php
 app/Livewire/Settings/Connect.php
+app/Services/Meta/SignedRequest.php        sahkan signed_request Meta
+app/Http/Controllers/MetaDataDeletionController.php   callback pemadaman data
+resources/views/legal/*.blade.php          notis privasi, terma, status pemadaman
 resources/views/components/creative-media.blade.php   gambar atau video
 config/dynoads.php                         semua setting Meta
 docs/dyno-ads-spec-v0.2.md
@@ -384,9 +389,16 @@ baik gagal kelihatan daripada berjaya lalu menghantar lead ke telefon yang salah
    Peniaga biasa tidak boleh jana System User token, dan setiap percubaan
    akan jadi tiket support.
 4. OTP telefon (OtpService) guna users.phone_verified_at yang sudah ada.
-5. PDPA (spec v0.1 §9): consent berasingan, Privacy Notice BM, skrin "Data Saya",
-   endpoint POST /meta/data-deletion (verify signed_request), retention 90 hari.
-   Gunakan skill pdpa-malaysia.
+5. PDPA (spec v0.1 §9) — SEPARA SIAP:
+   - [x] Notis Privasi BM di /privasi — menamakan Data User, menyenaraikan setiap
+         jenis data yang app betul-betul kumpul, 7 hak subjek data, 21 hari
+   - [x] Terma Perkhidmatan di /terma — Meta bil peniaga terus, tiada jaminan lead
+   - [x] POST /meta/data-deletion dengan pengesahan signed_request HMAC
+   - [ ] Skrin "Data Saya" (lihat + eksport data sendiri)
+   - [ ] Consent berasingan semasa daftar + log consent
+   - [ ] Job purge automatik selepas retention 90 hari
+   Butiran syarikat datang dari .env (COMPANY_*), BUKAN ditulis dalam kod.
+   Notis yang membawa butiran syarikat yang direka lebih teruk daripada tiada notis.
 6. Peringatan token luput 7 hari awal — FbConnection::expiresSoon() sudah ada.
 7. Test: data deletion callback.
 ```
