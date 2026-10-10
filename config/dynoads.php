@@ -20,6 +20,44 @@ return [
         'api_version' => env('META_API_VERSION', 'v21.0'),
         'graph_url' => env('META_GRAPH_URL', 'https://graph.facebook.com'),
         'timeout' => 60,
+
+        // Rahsia app Meta. Diperlukan untuk mengesahkan signed_request pada
+        // callback pemadaman data. Tanpa ia, callback itu menolak SEMUA
+        // permintaan — itu lebih selamat daripada memadam data atas arahan
+        // sesiapa yang tahu URL.
+        'app_id' => env('META_APP_ID'),
+        'app_secret' => env('META_APP_SECRET'),
+    ],
+
+    /*
+    |----------------------------------------------------------------------
+    | Butiran syarikat — PDPA Akta 709
+    |----------------------------------------------------------------------
+    |
+    | Akta 709 Seksyen 7 mewajibkan Notis Privasi menamakan Data User:
+    | nama berdaftar, nombor pendaftaran, dan alamat. Nilai ini SENGAJA
+    | tiada lalai. Notis Privasi yang membawa butiran syarikat yang direka
+    | lebih teruk daripada tiada notis — ia menipu pengguna dan tidak
+    | melindungi sesiapa.
+    |
+    | Halaman /privasi memaparkan amaran yang jelas selagi ia kosong.
+    |
+    */
+    'company' => [
+        'name' => env('COMPANY_NAME'),
+        'registration_no' => env('COMPANY_SSM'),
+        'address' => env('COMPANY_ADDRESS'),
+        'email' => env('COMPANY_EMAIL'),
+        'phone' => env('COMPANY_PHONE'),
+    ],
+
+    'privacy' => [
+        // Versi notis. Naikkan bila tujuan pemprosesan berubah — pengguna
+        // perlu diberitahu dan consent diambil semula (Prinsip Notice & Choice).
+        'version' => '2026-10-10',
+
+        // Prinsip Retention: data tidak disimpan lebih lama daripada perlu.
+        'retention_days' => 90,
     ],
 
     // Satu gambar = satu campaign. Itu asas split test.
