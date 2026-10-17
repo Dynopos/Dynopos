@@ -413,13 +413,17 @@ akaun sebenar milik orang lain sebelum berjanji kepada pelanggan berbayar.
 # FASA 8 — Jual
 ```
 1. Pelan Percuma / Peniaga RM49 / Pro RM129 (had ikut spec §9). toyyibPay FPX (skill toyyibpay).
-2. Kuota dikuatkuasakan: campaign aktif, creative, dan caption AI sebulan.
-   PERHATIAN: model harga asal membezakan pelan dengan kuota latar AI (5/40/150 sebulan).
-   Latar AI sudah dibatalkan, jadi pembeza itu tiada. Pelan perlukan sebab baharu untuk
-   orang bayar Pro — cadangan: bilangan campaign aktif, kekerapan report, atau sokongan
-   video. BELUM DIPUTUSKAN oleh pemilik; jangan bina harga sebelum ia diputuskan.
-3. Landing page (skill seo-landing-page). Onboarding 3 skrin: app optimize, tak jamin lead.
-4. Admin ringkas: senarai user, pelan, status FB connection, penggunaan AI.
+2. Kuota dikuatkuasakan: campaign aktif serentak + video. Lihat `docs/analisis-bisnes.md`
+   §4 untuk sebabnya — video ialah satu-satunya kos berubah yang sebenar, dan campaign
+   aktif berkadar dengan belanja iklan peniaga, jadi berkadar dengan kemampuan bayar.
+   Angka cadangan (1/4/12 campaign) MASIH perlu diuji terhadap pelanggan sebenar.
+3. JANGAN lancarkan harga self-serve sebelum App Review lulus. Onboarding manual
+   mengambil 30–60 minit setiap pelanggan; pada RM49 sebulan itu rugi. Lihat
+   `docs/analisis-bisnes.md` §5.
+4. Job pembersihan media selepas retention 90 hari. Tiada satu pun wujud sekarang —
+   setiap video yang dimuat naik kekal di cakera selamanya. Kos DAN kewajipan PDPA.
+5. Landing page (skill seo-landing-page). Onboarding 3 skrin: app optimize, tak jamin lead.
+6. Admin ringkas: senarai user, pelan, status FB connection, penggunaan AI.
 ```
 
 ---
