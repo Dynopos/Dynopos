@@ -8,6 +8,7 @@ use App\Livewire\AdSets\Review;
 use App\Livewire\AdSets\Run;
 use App\Livewire\Auth\Login;
 use App\Livewire\Auth\Register;
+use App\Livewire\Businesses\Confirm;
 use App\Livewire\Settings\Connect;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -54,6 +55,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/semak/{adSet}', Review::class)->name('ad-sets.review');
         Route::get('/run/{adSet}', Run::class)->name('ad-sets.run');
         Route::get('/dashboard/{adSet}', Dashboard::class)->name('ad-sets.dashboard');
+        Route::get('/bisnes/{business}', Confirm::class)->name('businesses.confirm');
     });
 
     Route::get('/sambung', Connect::class)->name('meta.connect');

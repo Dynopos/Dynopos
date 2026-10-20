@@ -4,6 +4,7 @@ namespace App\Livewire\AdSets;
 
 use App\Exceptions\MetaApiException;
 use App\Models\AdSet;
+use App\Models\Business;
 use App\Services\AdLauncher;
 use App\Services\CaptionService;
 use Livewire\Attributes\Layout;
@@ -26,14 +27,20 @@ class Review extends Component
     /** Diisi bila caption datang dari acuan asas, bukan dari Claude. */
     public ?string $fallbackReason = null;
 
-    public function mount(AdSet $adSet, CaptionService $captions): void
+    public function mount(AdSet $adSet, CaptionService $captions)
     {
-        $this->adSet = $adSet->load('variants');
+        $this->adSet = $adSet->load('variants', 'business');
 
         $missing = $this->adSet->variants->whereNull('caption');
 
-        if ($missing->isNotEmpty()) {
+        // Caption hanya untuk bisnes yang disahkan (peraturan mutlak #14).
+        if ($missing->isNotEmpty() && $this->adSet->business && ! $this->adSet->business->hasConfirmedAnalysis()) {
+            return $this->toBusiness();
+        }
+
+        if ($missing->isNotEmpty() && $this->adSet->business) {
             $set = $captions->generate(
+                $this->adSet->business,
                 $this->adSet->problem,
                 $this->adSet->offer,
                 $missing->count()
@@ -51,11 +58,26 @@ class Review extends Component
         foreach ($this->adSet->variants as $variant) {
             $this->captions[$variant->id] = (string) $variant->caption;
         }
+
+        return null;
     }
 
-    public function regenerate(CaptionService $captions): void
+    public function regenerate(CaptionService $captions)
     {
+        $business = $this->adSet->business;
+
+        if ($business === null) {
+            $this->error = 'Pilih bisnes untuk set iklan ni dulu.';
+
+            return null;
+        }
+
+        if (! $business->hasConfirmedAnalysis()) {
+            return $this->toBusiness();
+        }
+
         $set = $captions->generate(
+            $business,
             $this->adSet->problem,
             $this->adSet->offer,
             $this->adSet->variants->count()
@@ -69,6 +91,35 @@ class Review extends Component
         }
 
         $this->adSet->load('variants');
+
+        return null;
+    }
+
+    /**
+     * Set iklan lama (sebelum analisis bisnes) dipautkan kepada bisnes yang
+     * sudah disahkan, supaya "Minta caption lain" boleh berjalan.
+     */
+    public function attachBusiness(int $id): void
+    {
+        $business = Business::find($id);
+
+        if ($business === null || ! $business->hasConfirmedAnalysis()) {
+            $this->error = 'Bisnes tu tak dijumpai atau belum disahkan.';
+
+            return;
+        }
+
+        $this->adSet->update(['business_id' => $business->id]);
+        $this->adSet->load('business');
+        $this->error = null;
+    }
+
+    protected function toBusiness()
+    {
+        return $this->redirectRoute('businesses.confirm', [
+            'business' => $this->adSet->business,
+            'set' => $this->adSet->id,
+        ], navigate: true);
     }
 
     /** Approve → campaign dibuat di Meta, semuanya PAUSED. Tiada duit lagi. */
@@ -90,6 +141,14 @@ class Review extends Component
             if ($captions->hasForbiddenWord($caption)) {
                 $this->working = false;
                 $this->error = 'Ada perkataan yang Meta biasa tolak dalam caption. Ubah dulu.';
+
+                return null;
+            }
+
+            if ($terms = $this->adSet->business?->offFieldTerms($caption)) {
+                $this->working = false;
+                $this->error = 'Caption iklan #'.$variant->position.' sebut "'.implode('", "', $terms)
+                    .'" — itu bukan bisnes anda. Ubah dulu.';
 
                 return null;
             }
@@ -126,6 +185,9 @@ class Review extends Component
     {
         return view('livewire.ad-sets.review', [
             'risiko' => $this->riskyClaims($captions),
+            'confirmedBusinesses' => $this->adSet->business
+                ? collect()
+                : Business::query()->whereNotNull('analysis_confirmed_at')->latest('updated_at')->get(),
         ]);
     }
 }

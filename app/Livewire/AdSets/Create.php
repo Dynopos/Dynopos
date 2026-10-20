@@ -5,12 +5,14 @@ namespace App\Livewire\AdSets;
 use App\Exceptions\MetaApiException;
 use App\Models\AdSet;
 use App\Models\AdVariant;
+use App\Models\Business;
 use App\Services\ImageProcessor;
 use App\Services\Meta\MetaCredentials;
 use App\Services\MetaAdsService;
 use App\Support\Media;
 use App\Support\Uploads;
 use Illuminate\Http\Client\ConnectionException;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Storage;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
@@ -44,6 +46,18 @@ class Create extends Component
      */
     public array $media = [];
 
+    /**
+     * Bisnes yang diiklankan. null = bisnes baharu, ditulis di bawah.
+     *
+     * Caption tidak ditulis sehingga AI faham bisnes ini dan peniaga
+     * mengesahkannya — lihat App\Livewire\Businesses\Confirm.
+     */
+    public ?int $businessId = null;
+
+    public string $businessName = '';
+
+    public string $businessDescription = '';
+
     public string $problem = '';
 
     public string $offer = '';
@@ -66,6 +80,7 @@ class Create extends Component
         // jadi setiap peniaga nampak nombor WhatsApp pemilik app sebagai lalai.
         $this->phone = MetaCredentials::current()->waPhone;
         $this->budgetRm = intdiv((int) config('dynoads.budget.default_daily_sen'), 100);
+        $this->businessId = $this->businesses()->first()?->id;
 
         try {
             $this->regions = $meta->searchRegions();
@@ -161,6 +176,18 @@ class Create extends Component
         return Uploads::maxKilobytes(Media::maxVideoKilobytes()) < 25600;
     }
 
+    /** @return Collection<int, Business> */
+    public function businesses()
+    {
+        return Business::query()->latest('updated_at')->latest('id')->get();
+    }
+
+    public function chooseBusiness(?int $id = null): void
+    {
+        $this->businessId = $id;
+        $this->resetErrorBag(['businessId', 'businessName', 'businessDescription']);
+    }
+
     public function creativeCount(): int
     {
         return count($this->media);
@@ -173,6 +200,9 @@ class Create extends Component
 
         return [
             'media' => 'array|max:'.config('dynoads.creative.max_creatives'),
+            'businessId' => 'nullable|integer',
+            'businessName' => 'required_without:businessId|nullable|string|max:120',
+            'businessDescription' => 'required_without:businessId|nullable|string|min:15|max:600',
             'problem' => 'required|string|min:5|max:200',
             'offer' => 'required|string|min:5|max:200',
             'phone' => ['required', 'regex:/^60\d{8,11}$/'],
@@ -187,6 +217,9 @@ class Create extends Component
         return [
             'media.max' => 'Maksimum 4 media. Lebih dari tu susah nak baca hasilnya.',
             'upload.*.uploaded' => 'Fail gagal dimuat naik. Biasanya kerana saiznya melebihi had pelayan ('.Uploads::maxLabel().').',
+            'businessName.required_without' => 'Tulis nama bisnes.',
+            'businessDescription.required_without' => 'Tulis apa bisnes ni buat. AI kena faham dulu sebelum tulis caption.',
+            'businessDescription.min' => 'Tulis lebih sikit — satu dua ayat apa yang bisnes ni jual atau buat.',
             'problem.required' => 'Tulis masalah pelanggan anda.',
             'offer.required' => 'Tulis apa yang anda tawarkan.',
             'phone.regex' => 'Nombor WhatsApp kena format 60XXXXXXXXX, tiada tanda +.',
@@ -208,7 +241,24 @@ class Create extends Component
             return null;
         }
 
+        $business = $this->businessId === null ? null : Business::find($this->businessId);
+
+        // Global scope: id bisnes peniaga lain tidak dijumpai, sama seperti tidak wujud.
+        if ($this->businessId !== null && $business === null) {
+            $this->addError('businessId', 'Bisnes tu tak dijumpai. Pilih semula.');
+
+            return null;
+        }
+
+        $business ??= Business::create([
+            'name' => trim($this->businessName),
+            'description' => trim($this->businessDescription),
+        ]);
+
+        $business->touch();
+
         $set = AdSet::create([
+            'business_id' => $business->id,
             'name' => str($this->offer)->limit(60)->value(),
             'problem' => $this->problem,
             'offer' => $this->offer,
@@ -233,7 +283,10 @@ class Create extends Component
             );
         }
 
-        return $this->redirectRoute('ad-sets.review', ['adSet' => $set], navigate: true);
+        // Bisnes yang belum disahkan: analisis dahulu, caption kemudian.
+        return $business->hasConfirmedAnalysis()
+            ? $this->redirectRoute('ad-sets.review', ['adSet' => $set], navigate: true)
+            : $this->redirectRoute('businesses.confirm', ['business' => $business, 'set' => $set->id], navigate: true);
     }
 
     /** Gambar dipotong 1080×1080 seperti sebelum ini. */
@@ -286,6 +339,8 @@ class Create extends Component
 
     public function render()
     {
-        return view('livewire.ad-sets.create');
+        return view('livewire.ad-sets.create', [
+            'businesses' => $this->businesses(),
+        ]);
     }
 }

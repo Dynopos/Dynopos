@@ -16,6 +16,33 @@
         <div class="mt-4 rounded-xl border border-rose-500/30 bg-rose-500/10 p-3.5 text-sm text-rose-700 dark:text-rose-200">{{ $error }}</div>
     @endif
 
+    @if ($adSet->business)
+        <a href="{{ route('businesses.confirm', ['business' => $adSet->business, 'set' => $adSet->id]) }}" wire:navigate
+           class="card mt-4 flex items-center gap-3 p-3.5">
+            <span class="min-w-0 flex-1">
+                <span class="block text-xs t-muted">Caption ditulis untuk</span>
+                <span class="block text-sm font-bold">{{ $adSet->business->name }}</span>
+                <span class="block text-xs leading-relaxed t-muted">{{ $adSet->business->field() }}</span>
+            </span>
+            <span class="text-xs font-semibold t-faint">Ubah &rarr;</span>
+        </a>
+    @else
+        <div class="mt-4 rounded-xl border border-amber-500/30 bg-amber-500/10 p-3.5 text-sm leading-relaxed text-amber-800 dark:text-amber-200">
+            <span class="font-semibold">Set iklan ni belum ada profil bisnes.</span>
+            AI Nurin tak tulis caption tanpa tahu bisnes apa.
+            @if ($confirmedBusinesses->isNotEmpty())
+                Pilih bisnesnya:
+                <span class="mt-2 flex flex-wrap gap-2">
+                    @foreach ($confirmedBusinesses as $business)
+                        <button type="button" wire:click="attachBusiness({{ $business->id }})" class="chip">{{ $business->name }}</button>
+                    @endforeach
+                </span>
+            @else
+                <a href="{{ route('ad-sets.create') }}" wire:navigate class="underline">Buat iklan baru</a> untuk tambah bisnes dulu.
+            @endif
+        </div>
+    @endif
+
     <div class="mt-6 space-y-5">
         @foreach ($adSet->variants as $variant)
             <div class="card overflow-hidden">

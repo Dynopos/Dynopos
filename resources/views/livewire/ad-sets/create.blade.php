@@ -89,6 +89,45 @@
             @error('upload.*') <p class="err">{{ $message }}</p> @enderror
         </div>
 
+        {{-- Bisnes --}}
+        <div>
+            <span class="label">Bisnes apa yang nak diiklankan?</span>
+
+            @if ($businesses->isNotEmpty())
+                <div class="mt-2 flex flex-wrap gap-2">
+                    @foreach ($businesses as $business)
+                        <button type="button" wire:click="chooseBusiness({{ $business->id }})"
+                                class="chip {{ $businessId === $business->id ? 'chip-on' : '' }}">
+                            {{ $business->name }}
+                        </button>
+                    @endforeach
+                    <button type="button" wire:click="chooseBusiness"
+                            class="chip {{ $businessId === null ? 'chip-on' : '' }}">
+                        + Bisnes lain
+                    </button>
+                </div>
+            @endif
+
+            @if ($businessId === null)
+                <input id="businessName" type="text" wire:model="businessName" class="field mt-2"
+                       placeholder="Nama bisnes. Contoh: Ali Skylift Rental">
+                @error('businessName') <p class="err">{{ $message }}</p> @enderror
+
+                <textarea id="businessDescription" wire:model="businessDescription" rows="3" class="field mt-2"
+                          placeholder="Apa bisnes ni buat? Contoh: sewa skylift dan lori kren untuk kerja tempat tinggi — pasang papan tanda, cat bangunan, potong pokok. Kawasan Kelantan."></textarea>
+                <p class="hint">AI Amir baca ni dulu dan terangkan semula bisnes anda. Anda sahkan, baru AI Nurin tulis caption.</p>
+                @error('businessDescription') <p class="err">{{ $message }}</p> @enderror
+            @else
+                @php($chosen = $businesses->firstWhere('id', $businessId))
+                @if ($chosen?->hasConfirmedAnalysis())
+                    <p class="hint">Bidang: {{ $chosen->field() }}</p>
+                @elseif ($chosen)
+                    <p class="hint">Belum disahkan. Anda akan semak analisis bisnes ni dulu sebelum caption ditulis.</p>
+                @endif
+            @endif
+            @error('businessId') <p class="err">{{ $message }}</p> @enderror
+        </div>
+
         {{-- Masalah --}}
         <div>
             <label class="label" for="problem">Masalah pelanggan anda</label>

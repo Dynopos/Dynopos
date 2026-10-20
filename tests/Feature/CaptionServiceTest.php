@@ -29,7 +29,7 @@ beforeEach(function () {
 it('memparse JSON caption dari balasan OpenAI', function () {
     Http::fake(['*/v1/chat/completions' => Http::response(balasanOpenAi('["Caption satu.", "Caption dua."]'))]);
 
-    $set = app(CaptionService::class)->generate('kira duit lambat', 'sistem POS', 2);
+    $set = app(CaptionService::class)->generate(bisnes(), 'kira duit lambat', 'sistem POS', 2);
 
     expect($set->captions)->toBe(['Caption satu.', 'Caption dua.'])
         ->and($set->fromFallback)->toBeFalse();
@@ -38,7 +38,7 @@ it('memparse JSON caption dari balasan OpenAI', function () {
 it('menghantar prompt sistem dan pengguna sebagai mesej berasingan', function () {
     Http::fake(['*/v1/chat/completions' => Http::response(balasanOpenAi('["Satu."]'))]);
 
-    app(CaptionService::class)->generate('kira duit lambat', 'sistem POS fullset', 1);
+    app(CaptionService::class)->generate(bisnes(), 'kira duit lambat', 'sistem POS fullset', 1);
 
     Http::assertSent(function (Request $r) {
         return $r['model'] === config('dynoads.caption.openai.model')
@@ -55,7 +55,7 @@ it('menghantar prompt sistem dan pengguna sebagai mesej berasingan', function ()
 it('guna Bearer token untuk OpenAI', function () {
     Http::fake(['*/v1/chat/completions' => Http::response(balasanOpenAi('["Satu."]'))]);
 
-    app(CaptionService::class)->generate('masalah', 'tawaran', 1);
+    app(CaptionService::class)->generate(bisnes(), 'masalah', 'tawaran', 1);
 
     Http::assertSent(fn (Request $r) => $r->hasHeader('Authorization', 'Bearer sk-ujian'));
 });
@@ -68,7 +68,7 @@ it('boleh bertukar ke Claude tanpa mengubah kod', function () {
 
     Http::fake(['*/v1/messages' => Http::response(balasanClaude('["Caption satu."]'))]);
 
-    $set = app(CaptionService::class)->generate('masalah', 'tawaran', 1);
+    $set = app(CaptionService::class)->generate(bisnes(), 'masalah', 'tawaran', 1);
 
     expect($set->captions)->toBe(['Caption satu.'])
         ->and($set->fromFallback)->toBeFalse();
@@ -95,7 +95,7 @@ it('mengeluarkan JSON walaupun model bungkus dengan teks lain', function () {
         balasanOpenAi("Ini caption anda:\n```json\n[\"Satu.\"]\n```")
     )]);
 
-    expect(app(CaptionService::class)->generate('masalah', 'tawaran', 1)->captions)->toBe(['Satu.']);
+    expect(app(CaptionService::class)->generate(bisnes(), 'masalah', 'tawaran', 1)->captions)->toBe(['Satu.']);
 });
 
 it('cuba semula bila balasan pertama bukan JSON', function () {
@@ -103,7 +103,7 @@ it('cuba semula bila balasan pertama bukan JSON', function () {
         ->push(balasanOpenAi('maaf saya tak faham'))
         ->push(balasanOpenAi('["Caption baik."]'));
 
-    expect(app(CaptionService::class)->generate('masalah', 'tawaran', 1)->captions)->toBe(['Caption baik.']);
+    expect(app(CaptionService::class)->generate(bisnes(), 'masalah', 'tawaran', 1)->captions)->toBe(['Caption baik.']);
 
     Http::assertSentCount(2);
 });
@@ -111,7 +111,7 @@ it('cuba semula bila balasan pertama bukan JSON', function () {
 it('jatuh ke caption asas bila pembekal gagal — peniaga tidak tersekat', function () {
     Http::fake(['*' => Http::response([], 500)]);
 
-    $set = app(CaptionService::class)->generate('kira duit lambat', 'sistem POS fullset', 2);
+    $set = app(CaptionService::class)->generate(bisnes(), 'kira duit lambat', 'sistem POS fullset', 2);
 
     expect($set->captions)->toHaveCount(2)
         ->and($set->fromFallback)->toBeTrue()
@@ -123,7 +123,7 @@ it('menyebut kunci yang belum diisi, dan kunci pembekal yang betul', function ()
     config()->set('dynoads.caption.openai.api_key', '');
     Http::fake(['*' => Http::response([], 401)]);
 
-    $set = app(CaptionService::class)->generate('masalah', 'tawaran', 1);
+    $set = app(CaptionService::class)->generate(bisnes(), 'masalah', 'tawaran', 1);
 
     expect($set->reason)->toContain('OPENAI_API_KEY')
         ->and($set->reason)->not->toContain('ANTHROPIC');
@@ -134,7 +134,7 @@ it('menyebut ANTHROPIC_API_KEY bila pemandu Claude dipilih', function () {
     config()->set('dynoads.caption.claude.api_key', '');
     Http::fake(['*' => Http::response([], 401)]);
 
-    expect(app(CaptionService::class)->generate('masalah', 'tawaran', 1)->reason)
+    expect(app(CaptionService::class)->generate(bisnes(), 'masalah', 'tawaran', 1)->reason)
         ->toContain('ANTHROPIC_API_KEY');
 });
 
@@ -143,7 +143,7 @@ it('membuang perkataan larangan dari caption', function () {
         balasanOpenAi('["Sistem POS terbaik di Malaysia, dijamin untung."]')
     )]);
 
-    $caption = app(CaptionService::class)->generate('masalah', 'tawaran', 1)->captions[0];
+    $caption = app(CaptionService::class)->generate(bisnes(), 'masalah', 'tawaran', 1)->captions[0];
 
     expect(mb_strtolower($caption))->not->toContain('terbaik di malaysia')
         ->and(mb_strtolower($caption))->not->toContain('dijamin');

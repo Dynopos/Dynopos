@@ -33,6 +33,8 @@ beforeEach(function () {
 // ---------------------------------------------------------------- muat naik
 
 it('video yang dipilih menjadi variant media_type=video', function () {
+    bisnes();
+
     Livewire::test(Create::class)
         ->set('upload', [UploadedFile::fake()->create('kedai.mp4', 2048)])
         ->set('problem', 'Kedai sunyi waktu petang')
@@ -52,6 +54,8 @@ it('video yang dipilih menjadi variant media_type=video', function () {
 });
 
 it('gambar dan video boleh bercampur dalam satu set', function () {
+    bisnes();
+
     Livewire::test(Create::class)
         ->set('upload', [UploadedFile::fake()->image('satu.jpg')])
         ->set('upload', [UploadedFile::fake()->create('dua.mp4', 1024)])
@@ -67,6 +71,8 @@ it('gambar dan video boleh bercampur dalam satu set', function () {
 it('video tidak dipotong persegi — video menegak kekal menegak', function () {
     // Memaksa 1:1 bermakna memotong kepala orang dalam video yang peniaga
     // rakam sendiri dengan telefon.
+    bisnes();
+
     Livewire::test(Create::class)
         ->set('upload', [UploadedFile::fake()->createWithContent('menegak.mp4', 'bait-video-sebenar')])
         ->set('problem', 'Kedai sunyi waktu petang')

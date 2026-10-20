@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Models\Concerns\BelongsToUser;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class AdSet extends Model
@@ -17,7 +18,7 @@ class AdSet extends Model
      * permintaan boleh mengaku data ini milik orang lain.
      */
     protected $fillable = [
-        'name', 'problem', 'offer', 'phone',
+        'business_id', 'name', 'problem', 'offer', 'phone',
         'region_keys', 'region_names', 'daily_budget_sen', 'status',
     ];
 
@@ -28,6 +29,11 @@ class AdSet extends Model
             'region_keys' => 'array',
             'region_names' => 'array',
         ];
+    }
+
+    public function business(): BelongsTo
+    {
+        return $this->belongsTo(Business::class);
     }
 
     public function variants(): HasMany
