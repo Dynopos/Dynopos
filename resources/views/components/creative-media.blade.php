@@ -18,6 +18,16 @@
 @elseif (filled($variant->image_path))
     <img src="{{ Storage::disk('public')->url($variant->image_path) }}"
          alt="Iklan {{ $variant->position }}" class="{{ $class }}">
+@elseif ($variant->isMediaPruned())
+    {{--
+        Media dibuang selepas tempoh simpanan tamat. Iklan di Meta tidak
+        terjejas — Meta memegang salinannya sendiri. Katakan sebabnya; kotak
+        kosong tanpa penjelasan akan jadi tiket support.
+    --}}
+    <div class="{{ $class }} flex flex-col items-center justify-center gap-1 border border-dashed border-current/20 px-2 text-center text-[10px] leading-tight t-faint">
+        <span>Gambar dibuang</span>
+        <span>selepas {{ config('dynoads.privacy.retention_days') }} hari</span>
+    </div>
 @else
     {{-- Variant posting sedia ada sebelum gambarnya disalin. --}}
     <div class="{{ $class }} flex items-center justify-center border border-dashed border-current/20 text-xs t-faint">

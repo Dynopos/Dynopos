@@ -94,6 +94,49 @@ Dari 150+ campaign sejarah DynoPOS (kos/lead ~RM10–15). Semuanya duduk dalam
 
 ---
 
+## Pembersihan media
+
+Video dibenarkan sehingga 100MB setiap fail, empat fail setiap set iklan. Tanpa
+pembersihan, setiap video yang pernah dimuat naik kekal di cakera selamanya — kos
+yang berkembang tanpa had, dan Prinsip Penyimpanan PDPA yang tidak dipatuhi.
+
+```bash
+php artisan dynoads:prune-media --dry-run   # papar sahaja, jangan padam
+php artisan dynoads:prune-media             # jalankan betul-betul
+php artisan dynoads:prune-media --days=180  # tempoh lain
+```
+
+Dijadualkan **3:30 pagi waktu Malaysia** setiap hari.
+
+> **Scheduler mesti dihidupkan di Forge.** Site → Scheduler → aktifkan. Tanpa cron
+> `schedule:run`, jadual ini tidak pernah berjalan dan tiada apa yang memberitahu
+> anda. Jalankan `php artisan schedule:list` untuk mengesahkan ia terdaftar.
+
+### Apa yang dibuang, dan apa yang kekal
+
+| Dibuang | Kekal |
+|---|---|
+| Fail gambar dan video | Baris `ad_variants`, caption, `metrics_daily` |
+
+Yang kekal itu kecil, dan ia satu-satunya sebab peniaga boleh tahu creative mana
+yang menang tahun lepas.
+
+**Iklan di Meta tidak terjejas** — Meta memegang salinannya sendiri melalui
+`image_hash` dan `video_id`. Yang hilang ialah pratonton dalam app, dan keupayaan
+melancarkan semula set iklan lama tanpa memuat naik semula.
+
+### Dua pagar
+
+1. **Set iklan yang masih ada variant `active` tidak pernah disentuh** — walaupun
+   ia berjalan setahun. Peniaga melihatnya dalam dashboard setiap hari.
+2. **Laluan disahkan sebelum dipadam.** Ia mesti berbentuk `dynoads/{set}/…`;
+   satu baris pangkalan data yang rosak tidak boleh menyuruh kita memadam fail di
+   tempat lain.
+
+Skrin memaparkan "Gambar dibuang selepas 90 hari" dan bukan kotak kosong. Cuba
+melancarkan set iklan yang medianya dibuang memberi ayat yang memberitahu apa yang
+perlu dibuat, bukan amaran `file_get_contents` mentah.
+
 ## Halaman undang-undang dan PDPA
 
 | Laluan | Untuk |
