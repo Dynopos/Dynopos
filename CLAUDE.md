@@ -21,6 +21,7 @@ Pengguna pertama: DynoPOS (pemilik repo).
 - **Enjin poster dan latar AI — DIBUANG.** Kod dipadam; data dikekalkan. Lihat nota arah.
 - **Prasyarat App Review — SIAP.** /privasi, /terma, dan callback pemadaman data Meta.
   Isi `COMPANY_*` dalam .env sebelum hantar App Review.
+- **Pembersihan media — SIAP.** `dynoads:prune-media` harian. Hidupkan Scheduler di Forge.
 - Fasa 2 seterusnya: **rekod `hook`** — sudut copy mana yang menang, bukan hanya nombor.
 - Satu PR satu fasa. Jangan gabung.
 
@@ -80,6 +81,7 @@ app/Services/PagePostService.php           senarai posting Page — BACA SAHAJA
 app/Services/Meta/MetaCredentials.php      kredential siapa yang digunakan
 app/Services/Chat/ChatService.php          (Fasa 4)
 app/Services/SplitTestService.php          (Fasa 5)
+app/Services/MediaPruner.php               buang fail media selepas retention
 app/Support/Media.php                      gambar atau video, had saiz
 app/Support/Phone.php                      nombor Malaysia → 60XXXXXXXXX
 app/Livewire/AdSets/{Create,Review,Run,Dashboard,ExistingPosts}.php
@@ -420,8 +422,8 @@ akaun sebenar milik orang lain sebelum berjanji kepada pelanggan berbayar.
 3. JANGAN lancarkan harga self-serve sebelum App Review lulus. Onboarding manual
    mengambil 30–60 minit setiap pelanggan; pada RM49 sebulan itu rugi. Lihat
    `docs/analisis-bisnes.md` §5.
-4. Job pembersihan media selepas retention 90 hari. Tiada satu pun wujud sekarang —
-   setiap video yang dimuat naik kekal di cakera selamanya. Kos DAN kewajipan PDPA.
+4. [x] Job pembersihan media SIAP — `dynoads:prune-media`, harian 3:30 pagi.
+   Scheduler mesti dihidupkan di Forge, kalau tidak ia tidak pernah berjalan.
 5. Landing page (skill seo-landing-page). Onboarding 3 skrin: app optimize, tak jamin lead.
 6. Admin ringkas: senarai user, pelan, status FB connection, penggunaan AI.
 ```

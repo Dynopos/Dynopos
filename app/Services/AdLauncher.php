@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Exceptions\MediaMissingException;
 use App\Exceptions\MetaApiException;
 use App\Models\AdSet;
 use App\Models\AdVariant;
@@ -79,7 +80,7 @@ class AdLauncher
             ]);
 
             $action->succeed("Campaign {$campaignId} dibuat, status PAUSED.");
-        } catch (MetaApiException $e) {
+        } catch (MetaApiException|MediaMissingException $e) {
             $variant->update(['status' => 'failed', 'last_error' => $e->forHuman()]);
             $action->fail($e->forHuman());
 
@@ -222,7 +223,7 @@ class AdLauncher
 
         if ($variant->isVideo()) {
             $videoId = $variant->meta_video_id
-                ?: $this->meta->uploadVideo($this->absolutePath((string) $variant->video_path));
+                ?: $this->meta->uploadVideo($this->absolutePath((string) $variant->video_path, $variant));
 
             $variant->update(['meta_video_id' => $videoId]);
 
@@ -237,7 +238,7 @@ class AdLauncher
 
         $variant->update([
             'meta_image_hash' => $variant->meta_image_hash
-                ?: $this->meta->uploadImage($this->absolutePath((string) $variant->image_path)),
+                ?: $this->meta->uploadImage($this->absolutePath((string) $variant->image_path, $variant)),
         ]);
     }
 
@@ -316,7 +317,7 @@ class AdLauncher
             }
 
             $hash = $variant->meta_image_hash
-                ?: $this->meta->uploadImage($this->absolutePath($variant->image_path));
+                ?: $this->meta->uploadImage($this->absolutePath($variant->image_path, $variant));
 
             $variant->update(['meta_image_hash' => $hash]);
 
@@ -341,8 +342,24 @@ class AdLauncher
         }
     }
 
-    protected function absolutePath(string $relativePath): string
+    /**
+     * Laluan penuh fail media, selepas mengesahkan ia benar-benar ada.
+     *
+     * Tanpa semakan ini, set iklan lama yang medianya sudah dibuang oleh
+     * dynoads:prune-media gagal dengan amaran file_get_contents mentah —
+     * mesej yang tidak memberitahu peniaga apa-apa yang berguna.
+     */
+    protected function absolutePath(string $relativePath, ?AdVariant $variant = null): string
     {
-        return Storage::disk('public')->path($relativePath);
+        $disk = Storage::disk('public');
+
+        if (blank($relativePath) || ! $disk->exists($relativePath)) {
+            throw MediaMissingException::forVariant(
+                (int) ($variant?->position ?? 0),
+                $variant?->media_pruned_at,
+            );
+        }
+
+        return $disk->path($relativePath);
     }
 }

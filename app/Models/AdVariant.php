@@ -13,7 +13,7 @@ class AdVariant extends Model
 
     protected $fillable = [
         'ad_set_id', 'position', 'source_type', 'media_type', 'poster_job_id', 'source_post_id',
-        'image_path', 'video_path', 'caption',
+        'image_path', 'video_path', 'media_pruned_at', 'caption',
         'meta_image_hash', 'meta_video_id', 'meta_thumbnail_url',
         'meta_campaign_id', 'meta_adset_id',
         'meta_creative_id', 'meta_ad_id', 'status', 'last_error',
@@ -23,6 +23,7 @@ class AdVariant extends Model
     {
         return [
             'position' => 'integer',
+            'media_pruned_at' => 'datetime',
         ];
     }
 
@@ -57,6 +58,17 @@ class AdVariant extends Model
     public function mediaPath(): ?string
     {
         return $this->isVideo() ? $this->video_path : $this->image_path;
+    }
+
+    /**
+     * Fail media sudah dibuang selepas tempoh simpanan tamat.
+     *
+     * Iklan di Meta tidak terjejas — Meta memegang salinannya sendiri melalui
+     * image_hash dan video_id. Yang hilang ialah pratonton dalam app.
+     */
+    public function isMediaPruned(): bool
+    {
+        return $this->media_pruned_at !== null;
     }
 
     /**
