@@ -1,5 +1,6 @@
 <?php
 
+use App\Models\Business;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -26,4 +27,10 @@ function masukSebagaiPemilik(array $attributes = []): User
     test()->actingAs($user);
 
     return $user;
+}
+
+/** Bisnes yang analisisnya sudah disahkan — syarat sebelum caption ditulis. */
+function bisnes(array $attributes = []): Business
+{
+    return Business::factory()->create($attributes);
 }

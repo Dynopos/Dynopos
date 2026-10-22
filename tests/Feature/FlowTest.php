@@ -40,6 +40,8 @@ beforeEach(function () {
 });
 
 it('/buat menerima 2 gambar dan menyimpan set dengan variant siap crop', function () {
+    bisnes();
+
     Livewire::test(Create::class)
         ->set('upload', [
             UploadedFile::fake()->image('a.jpg', 1600, 900),
@@ -65,6 +67,8 @@ it('/buat menerima 2 gambar dan menyimpan set dengan variant siap crop', functio
 });
 
 it('/buat menolak lebih dari 4 gambar dan nombor telefon salah format', function () {
+    bisnes();
+
     Livewire::test(Create::class)
         ->set('media', collect(range(1, 5))->map(fn ($i) => UploadedFile::fake()->image("{$i}.jpg"))->all())
         ->set('upload', [])
@@ -81,6 +85,8 @@ it('memilih gambar satu-satu MENAMBAH, bukan menggantikan', function () {
     // Atas telefon, galeri selalunya pulangkan satu gambar setiap kali. Kalau
     // pilihan kedua menggantikan yang pertama, peniaga hanya dapat satu iklan
     // tanpa tahu kenapa. Itu bug yang ujian ini menjaga.
+    bisnes();
+
     Livewire::test(Create::class)
         ->set('upload', [UploadedFile::fake()->image('satu.jpg')])
         ->assertCount('media', 1)
@@ -103,6 +109,8 @@ it('tidak menerima gambar melebihi had walaupun dipilih berkali-kali', function 
 });
 
 it('boleh membuang satu gambar dan nombor iklan disusun semula', function () {
+    bisnes();
+
     Livewire::test(Create::class)
         ->set('upload', [
             UploadedFile::fake()->image('a.jpg'),
@@ -114,6 +122,8 @@ it('boleh membuang satu gambar dan nombor iklan disusun semula', function () {
 });
 
 it('boleh pilih beberapa negeri, dan Meta terima kesemuanya', function () {
+    bisnes();
+
     Livewire::test(Create::class)
         ->call('toggleRegion', '3847')
         ->call('toggleRegion', '3846')
@@ -136,6 +146,8 @@ it('boleh pilih beberapa negeri, dan Meta terima kesemuanya', function () {
 });
 
 it('tiada negeri dipilih bermakna seluruh Malaysia', function () {
+    bisnes();
+
     Livewire::test(Create::class)
         ->set('upload', [UploadedFile::fake()->image('a.jpg')])
         ->set('problem', 'kira duit lambat waktu peak hour')

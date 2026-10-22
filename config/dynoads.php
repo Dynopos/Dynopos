@@ -167,6 +167,19 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Analisis bisnes
+    |--------------------------------------------------------------------------
+    |
+    | AI faham bisnes dahulu, peniaga sahkan, barulah caption ditulis. Had ini
+    | menghalang butang "Analisis semula" menjadi loop kos tanpa had.
+    |
+    */
+    'analysis' => [
+        'max_per_business' => (int) env('DYNOADS_MAX_ANALYSES', 6),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Penulis caption
     |--------------------------------------------------------------------------
     |

@@ -22,6 +22,8 @@ Pengguna pertama: DynoPOS (pemilik repo).
 - **Prasyarat App Review — SIAP.** /privasi, /terma, dan callback pemadaman data Meta.
   Isi `COMPANY_*` dalam .env sebelum hantar App Review.
 - **Pembersihan media — SIAP.** `dynoads:prune-media` harian. Hidupkan Scheduler di Forge.
+- **Analisis bisnes — SIAP.** /buat → /bisnes/{id} (AI Amir terangkan bisnes, peniaga sahkan)
+  → /semak. Sebab: caption oksigen untuk bisnes sewa skylift semasa demo. Peraturan #14.
 - Fasa 2 seterusnya: **rekod `hook`** — sudut copy mana yang menang, bukan hanya nombor.
 - Satu PR satu fasa. Jangan gabung.
 
@@ -47,6 +49,10 @@ Pengguna pertama: DynoPOS (pemilik repo).
 11. CTA iklan: "Tekan WhatsApp untuk info lanjut". Jangan guna perkataan "demo".
 12. Jangan tiru nama watak, susunan skrin atau ayat pemasaran pesaing. Identiti Dyno sendiri.
 13. **Jangan sekali-kali edit, padam atau ubah posting Page sedia ada.** App hanya merujuk `post_id` untuk dijadikan creative.
+14. **Analisis bisnes disahkan dahulu.** AI Nurin hanya tulis caption untuk bisnes yang
+    analisisnya (bidang, servis, "jangan sebut") sudah disahkan peniaga
+    (`CaptionService::generate` buang `BusinessNotConfirmed`). Caption yang sebut perkataan
+    "jangan sebut" ditolak oleh kod — semasa jana dan semasa approve.
 
 ## Kru AI (persona UI sahaja — satu model, system prompt berbeza)
 AI Amir (Ketua Projek) · AI Nurin (Penulis) · AI Zaki (Pereka) · AI Hana (Penganalisis)
@@ -75,6 +81,9 @@ Semua duduk dalam `config/dynoads.php`. Dari 150+ campaign DynoPOS, kos/lead ~RM
 ```
 app/Services/MetaAdsService.php            Graph API (tiada method update* — sengaja)
 app/Services/CaptionService.php            caption AI
+app/Services/BusinessAnalyst.php           analisis bisnes sebelum caption (peraturan #14)
+app/Models/Business.php                    profil bisnes, analysis, "jangan sebut"
+app/Livewire/Businesses/Confirm.php        skrin "Betul ke ni bisnes anda?"
 app/Services/AdLauncher.php                orkestra DB ⇄ Meta
 app/Services/ImageProcessor.php            crop 1080×1080 (gambar sahaja)
 app/Services/PagePostService.php           senarai posting Page — BACA SAHAJA

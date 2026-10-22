@@ -11,8 +11,9 @@ Token duduk dalam `.env`. Fasa 1 (guna posting sedia ada) hingga Fasa 9 diterang
 ## Flow
 
 ```
-/buat        Upload 1–4 gambar → masalah → tawaran → telefon → kawasan → bajet
+/buat        Upload 1–4 gambar → bisnes → masalah → tawaran → telefon → kawasan → bajet
 /posting     Pilih 2–4 posting Page sedia ada → kawasan → bajet → campaign PAUSED
+/bisnes/{id} AI Amir terangkan bisnes → peniaga sahkan atau betulkan (sekali setiap bisnes)
 /semak/{id}  Caption AI (boleh edit) + pratonton → Approve → campaign dibuat PAUSED
 /run/{id}    Butang RUN SEMUA → campaign/adset/ad jadi ACTIVE. Pause per iklan.
 /dashboard/{id}  Spend, lead WhatsApp, kos/lead setiap iklan + rekod tindakan

@@ -2,6 +2,8 @@
 
 namespace App\Services;
 
+use App\Exceptions\BusinessNotConfirmed;
+use App\Models\Business;
 use App\Services\Caption\CaptionWriter;
 use RuntimeException;
 
@@ -13,6 +15,11 @@ use RuntimeException;
  * kekal di sini, jadi menukar pembekal tidak menukar kualiti copy.
  *
  * LLM hanya menulis teks. Ia tidak pernah memanggil Meta (peraturan mutlak #5).
+ *
+ * Caption hanya ditulis untuk bisnes yang analisisnya sudah disahkan
+ * peniaga (peraturan mutlak #14). Masalah dan tawaran sahaja tidak cukup —
+ * AI meneka bidangnya, dan tekaan itu pernah menjadi caption oksigen untuk
+ * bisnes sewa skylift.
  */
 class CaptionService
 {
@@ -21,22 +28,37 @@ class CaptionService
     /**
      * Jana beberapa caption berbeza — satu untuk setiap gambar,
      * supaya split test membandingkan sudut ayat, bukan hanya gambar.
+     *
+     * @throws BusinessNotConfirmed
      */
-    public function generate(string $problem, string $offer, int $count = 1): CaptionSet
+    public function generate(Business $business, string $problem, string $offer, int $count = 1): CaptionSet
     {
+        if (! $business->hasConfirmedAnalysis()) {
+            throw new BusinessNotConfirmed;
+        }
+
         $count = max(1, min($count, (int) config('dynoads.creative.max_creatives')));
         $attempts = (int) config('dynoads.caption.retries') + 1;
         $last = null;
 
         for ($i = 0; $i < $attempts; $i++) {
             try {
-                $captions = $this->ask($problem, $offer, $count);
+                $all = $this->ask($business, $problem, $offer, $count);
+
+                // Semakan kod: caption yang menyebut perkara "bukan bisnes ini"
+                // dibuang, walaupun prompt sudah melarangnya.
+                $captions = array_values(array_filter(
+                    $all,
+                    fn (string $caption) => $business->offFieldTerms($caption) === []
+                ));
 
                 if (count($captions) >= $count) {
                     return CaptionSet::fromAi(array_slice($captions, 0, $count));
                 }
 
-                $last = new RuntimeException('Claude pulangkan caption tidak cukup.');
+                $last = new RuntimeException(count($captions) < count($all)
+                    ? 'AI tulis caption di luar bidang bisnes.'
+                    : 'Claude pulangkan caption tidak cukup.');
             } catch (RuntimeException $e) {
                 $last = $e;
             }
@@ -54,11 +76,11 @@ class CaptionService
     }
 
     /** @return array<int, string> */
-    protected function ask(string $problem, string $offer, int $count): array
+    protected function ask(Business $business, string $problem, string $offer, int $count): array
     {
         return $this->parse($this->writer->write(
             $this->systemPrompt(),
-            $this->userPrompt($problem, $offer, $count),
+            $this->userPrompt($business, $problem, $offer, $count),
         ));
     }
 
@@ -146,6 +168,16 @@ class CaptionService
         Kau AI Nurin, penulis copy untuk peniaga kecil Malaysia. Kau tulis untuk
         orang yang scroll Facebook atas telefon sambil buat kerja lain.
 
+        KENAL BISNES DULU
+        - Setiap caption mesti tentang bisnes dalam PROFIL BISNES sahaja, dalam
+          bidang itu sahaja. Profil itu sudah disahkan peniaga.
+        - Jangan sebut apa-apa dalam senarai "JANGAN sebut", walaupun masalah
+          atau tawaran nampak berkaitan.
+        - Jangan reka produk, servis, harga atau promosi yang tiada dalam
+          profil, masalah atau tawaran.
+        - Kalau masalah/tawaran kabur, tafsir ikut bidang bisnes, bukan ikut
+          maksud lain perkataan itu.
+
         BENTUK
         - 3 hingga 5 baris pendek. Baris pertama mesti berhenti scroll.
         - Bahasa Melayu santai yang orang sebenar guna. Bukan BM baku sekolah,
@@ -178,9 +210,14 @@ class CaptionService
         TXT;
     }
 
-    protected function userPrompt(string $problem, string $offer, int $count): string
+    protected function userPrompt(Business $business, string $problem, string $offer, int $count): string
     {
+        $profile = $business->promptContext();
+
         return <<<TXT
+        PROFIL BISNES (disahkan peniaga):
+        {$profile}
+
         Masalah pelanggan: {$problem}
         Tawaran: {$offer}
 
