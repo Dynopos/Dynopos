@@ -2,6 +2,7 @@
 
 namespace App\Services\Meta;
 
+use App\Exceptions\ConsentMissing;
 use App\Exceptions\MetaCredentialsMissing;
 use App\Models\FbConnection;
 use App\Models\User;
@@ -61,8 +62,21 @@ final class MetaCredentials
 
     public static function fromConnection(FbConnection $connection): self
     {
+        if ($connection->needsConsent()) {
+            throw ConsentMissing::forClient();
+        }
+
+        // Pelanggan urus: token System User pemilik dari .env, bukan salinan.
+        $token = $connection->uses_owner_token
+            ? (string) config('dynoads.meta.token')
+            : (string) $connection->token;
+
+        if ($token === '') {
+            throw MetaCredentialsMissing::forUser();
+        }
+
         return new self(
-            token: (string) $connection->token,
+            token: $token,
             adAccountId: self::normaliseAccountId((string) $connection->ad_account_id),
             pageId: (string) $connection->page_id,
             waPhone: (string) $connection->wa_phone,

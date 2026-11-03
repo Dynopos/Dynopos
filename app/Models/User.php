@@ -52,6 +52,14 @@ class User extends Authenticatable
 
     public function hasMetaCredentials(): bool
     {
-        return $this->mayUseEnvCredentials() || $this->fbConnection()->where('status', 'active')->exists();
+        if ($this->mayUseEnvCredentials()) {
+            return true;
+        }
+
+        $connection = $this->fbConnection()->where('status', 'active')->first();
+
+        // Pelanggan urus tanpa persetujuan dikira belum bersambung, supaya
+        // middleware menghantar ke /sambung dan bukan ke skrin yang akan gagal.
+        return $connection !== null && ! $connection->needsConsent();
     }
 }

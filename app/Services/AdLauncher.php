@@ -8,6 +8,7 @@ use App\Models\AdSet;
 use App\Models\AdVariant;
 use App\Models\AutoAction;
 use App\Models\MetricDaily;
+use App\Support\Impersonation;
 use Illuminate\Support\Facades\Storage;
 use RuntimeException;
 
@@ -49,7 +50,7 @@ class AdLauncher
             reason: "Buat campaign PAUSED untuk iklan #{$variant->position} ({$name}).",
             set: $set,
             variant: $variant,
-            payload: ['name' => $name, 'daily_budget_sen' => $set->daily_budget_sen],
+            payload: ['name' => $name, 'daily_budget_sen' => $set->daily_budget_sen] + $this->actor(),
         );
 
         try {
@@ -112,9 +113,11 @@ class AdLauncher
 
         $action = AutoAction::start(
             action: 'run',
-            reason: "Peniaga tekan RUN untuk iklan #{$variant->position}.",
+            reason: Impersonation::active()
+                ? "Pemilik tekan RUN bagi pihak pelanggan untuk iklan #{$variant->position}."
+                : "Peniaga tekan RUN untuk iklan #{$variant->position}.",
             variant: $variant,
-            payload: ['campaign_id' => $variant->meta_campaign_id],
+            payload: ['campaign_id' => $variant->meta_campaign_id] + $this->actor(),
         );
 
         try {
@@ -331,6 +334,14 @@ class AdLauncher
 
             throw $e;
         }
+    }
+
+    /** Siapa yang sebenarnya menekan butang — untuk pertikaian belanja kemudian. */
+    protected function actor(): array
+    {
+        $owner = Impersonation::owner();
+
+        return $owner ? ['oleh_pemilik_id' => $owner->id] : [];
     }
 
     protected function guardOwnership(AdVariant $variant): void
