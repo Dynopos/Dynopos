@@ -1,33 +1,33 @@
 <div>
-    <h1 class="text-[28px] font-extrabold leading-tight tracking-tight">Semak dulu</h1>
-    <p class="mt-1.5 text-sm leading-relaxed t-muted">
+    <h1 class="page-title">Semak dulu</h1>
+    <p class="page-lead">
         AI Nurin dah tulis caption. Ubah ikut suka anda — anda yang kenal pelanggan.
     </p>
 
     @if ($fallbackReason)
-        <div class="mt-4 rounded-xl border border-amber-500/30 bg-amber-500/10 p-3.5 text-sm leading-relaxed text-amber-800 dark:text-amber-200">
+        <div class="mt-4 note note-warn text-sm">
             <span class="font-semibold">AI tak menulis caption ni.</span>
             Ini ayat asas yang app susun dari input anda — sebab tu ia bunyi kosong.
-            <span class="mt-1.5 block text-amber-700/80 dark:text-amber-200/70">{{ $fallbackReason }}</span>
+            <span class="note-sub">{{ $fallbackReason }}</span>
         </div>
     @endif
 
     @if ($error)
-        <div class="mt-4 rounded-xl border border-rose-500/30 bg-rose-500/10 p-3.5 text-sm text-rose-700 dark:text-rose-200">{{ $error }}</div>
+        <div class="mt-4 note note-err text-sm">{{ $error }}</div>
     @endif
 
     @if ($adSet->business)
         <a href="{{ route('businesses.confirm', ['business' => $adSet->business, 'set' => $adSet->id]) }}" wire:navigate
-           class="card mt-4 flex items-center gap-3 p-3.5">
+           class="card mt-5 flex items-center gap-3 p-4">
             <span class="min-w-0 flex-1">
                 <span class="block text-xs t-muted">Caption ditulis untuk</span>
                 <span class="block text-sm font-bold">{{ $adSet->business->name }}</span>
                 <span class="block text-xs leading-relaxed t-muted">{{ $adSet->business->field() }}</span>
             </span>
-            <span class="text-xs font-semibold t-faint">Ubah &rarr;</span>
+            <span class="text-xs font-bold t-primary">Ubah &rsaquo;</span>
         </a>
     @else
-        <div class="mt-4 rounded-xl border border-amber-500/30 bg-amber-500/10 p-3.5 text-sm leading-relaxed text-amber-800 dark:text-amber-200">
+        <div class="mt-4 note note-warn text-sm">
             <span class="font-semibold">Set iklan ni belum ada profil bisnes.</span>
             AI Nurin tak tulis caption tanpa tahu bisnes apa.
             @if ($confirmedBusinesses->isNotEmpty())
@@ -48,11 +48,11 @@
             <div class="card overflow-hidden">
                 <div class="relative">
                     <x-creative-media :variant="$variant" class="aspect-square w-full object-cover" />
-                    <span class="absolute left-3 top-3 rounded-lg bg-black/65 px-2 py-1 text-[11px] font-bold backdrop-blur-sm">
+                    <span class="pill absolute left-3 top-3 bg-black/60 text-white backdrop-blur-sm">
                         Iklan #{{ $variant->position }}
                     </span>
                     @if ($variant->meta_campaign_id)
-                        <span class="absolute right-3 top-3 rounded-lg bg-emerald-500/15 px-2 py-1 text-[11px] font-semibold text-emerald-700 dark:text-emerald-300 backdrop-blur-sm">
+                        <span class="pill pill-ok absolute right-3 top-3">
                             Sudah dibuat
                         </span>
                     @endif
@@ -61,7 +61,7 @@
                     <textarea wire:model.blur="captions.{{ $variant->id }}" rows="5" class="field leading-relaxed"></textarea>
 
                     @if (! empty($risiko[$variant->id]))
-                        <p class="mt-2 text-xs leading-relaxed text-amber-700 dark:text-amber-300">
+                        <p class="note note-warn mt-2 text-xs">
                             Dakwaan <span class="font-semibold">{{ implode(', ', $risiko[$variant->id]) }}</span>
                             susah dibuktikan, dan Meta kadang menolaknya. Kalau ada harga, sebut harga —
                             angka lebih kuat daripada dakwaan.
@@ -89,7 +89,7 @@
         </div>
         <div class="flex items-center justify-between pt-2.5">
             <span class="t-muted">Jumlah sehari</span>
-            <span class="bg-dyno-gradient bg-clip-text text-lg font-extrabold text-transparent">
+            <span class="text-lg font-extrabold tabular-nums t-primary">
                 RM{{ intdiv($adSet->totalDailyBudgetSen(), 100) }}
             </span>
         </div>

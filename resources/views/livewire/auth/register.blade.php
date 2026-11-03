@@ -1,8 +1,8 @@
 <div>
-    <h1 class="text-2xl font-extrabold tracking-tight">Daftar</h1>
-    <p class="hint mt-1">Percuma untuk mula. Tiada duit dibelanjakan sebelum anda tekan RUN.</p>
+    <h1 class="page-title">Daftar</h1>
+    <p class="page-lead">Percuma untuk mula. Tiada duit dibelanjakan sebelum anda tekan RUN.</p>
 
-    <form wire:submit="daftar" class="card mt-5 space-y-4">
+    <form wire:submit="daftar" class="mt-6 space-y-4">
         <div>
             <label class="label" for="name">Nama</label>
             <input id="name" type="text" autocomplete="name" class="field"
@@ -40,6 +40,6 @@
 
     <p class="mt-5 text-center text-sm t-muted">
         Dah ada akaun?
-        <a href="{{ route('masuk') }}" wire:navigate class="font-semibold underline">Masuk</a>
+        <a href="{{ route('masuk') }}" wire:navigate class="btn-link">Masuk</a>
     </p>
 </div>

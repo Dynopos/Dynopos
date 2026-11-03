@@ -1,24 +1,24 @@
 <div>
-    <h1 class="text-[28px] font-extrabold leading-tight tracking-tight">Betul ke ni bisnes anda?</h1>
-    <p class="mt-1.5 text-sm leading-relaxed t-muted">
+    <h1 class="page-title">Betul ke ni bisnes anda?</h1>
+    <p class="page-lead">
         AI Amir baca apa yang anda tulis tentang <span class="font-semibold">{{ $business->name }}</span>.
         Sahkan dulu — AI Nurin hanya tulis caption ikut apa yang anda sahkan di sini.
     </p>
 
     @if ($error)
-        <div class="mt-4 rounded-xl border border-rose-500/30 bg-rose-500/10 p-3.5 text-sm text-rose-700 dark:text-rose-200">{{ $error }}</div>
+        <div class="mt-4 note note-err text-sm">{{ $error }}</div>
     @endif
 
     @if (($analysis['source'] ?? null) === 'manual')
-        <div class="mt-4 rounded-xl border border-amber-500/30 bg-amber-500/10 p-3.5 text-sm leading-relaxed text-amber-800 dark:text-amber-200">
+        <div class="mt-4 note note-warn text-sm">
             <span class="font-semibold">AI tak dapat menganalisis.</span>
             Medan di bawah diisi dari tulisan anda sendiri. Semak dan betulkan sebelum sahkan.
             @if (filled($analysis['reason'] ?? null))
-                <span class="mt-1.5 block text-amber-700/80 dark:text-amber-200/70">{{ $analysis['reason'] }}</span>
+                <span class="note-sub">{{ $analysis['reason'] }}</span>
             @endif
         </div>
     @elseif (($analysis['confidence'] ?? null) === 'rendah')
-        <div class="mt-4 rounded-xl border border-amber-500/30 bg-amber-500/10 p-3.5 text-sm leading-relaxed text-amber-800 dark:text-amber-200">
+        <div class="mt-4 note note-warn text-sm">
             <span class="font-semibold">AI tak berapa pasti.</span>
             {{ $analysis['question'] ?: 'Terangkan bisnes anda dengan lebih jelas di bawah.' }}
         </div>

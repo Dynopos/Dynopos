@@ -1,18 +1,18 @@
 <div>
-    <h1 class="text-[28px] font-extrabold leading-tight tracking-tight">Guna posting sedia ada</h1>
-    <p class="mt-1.5 text-sm leading-relaxed t-muted">
+    <h1 class="page-title">Guna posting sedia ada</h1>
+    <p class="page-lead">
         Pilih {{ $this->minSelection() }}–{{ $this->maxSelection() }} posting yang anda dah ada.
         Setiap satu jadi satu iklan, dan kita bandingkan mana yang paling murah kosnya.
     </p>
 
     {{-- Amaran wajib: organik dan iklan bukan benda yang sama. Organik diedar
          kepada peminat sedia ada; iklan diedar kepada orang asing. --}}
-    <div class="mt-4 rounded-xl border border-amber-500/30 bg-amber-500/10 p-3 text-xs leading-relaxed text-amber-800 dark:text-amber-200/90">
+    <div class="mt-4 note note-warn text-xs">
         Posting yang naik secara organik belum tentu murah kosnya sebagai iklan — sebab tu kita tetap split test.
     </div>
 
     @if ($error)
-        <div class="mt-4 rounded-xl border border-rose-500/30 bg-rose-500/10 p-3 text-xs leading-relaxed text-rose-800 dark:text-rose-200/90">
+        <div class="mt-4 note note-err text-xs">
             {{ $error }}
         </div>
     @endif
@@ -27,12 +27,12 @@
             </div>
 
             @if ($loadError)
-                <div class="mt-2 rounded-xl border border-amber-500/30 bg-amber-500/10 p-3 text-xs leading-relaxed text-amber-800 dark:text-amber-200/90">
-                    Senarai posting tidak dapat ditarik dari Facebook.
-                    <span class="mt-1.5 block break-words text-amber-700/80 dark:text-amber-200/60">Sebab: {{ $loadError }}</span>
-                    <span class="mt-1.5 block text-amber-700/80 dark:text-amber-200/60">
-                        Semak META_ACCESS_TOKEN dan META_PAGE_ID dalam .env.
-                    </span>
+                <div class="mt-2 note note-warn text-xs">
+                    Senarai posting tidak dapat ditarik dari Facebook. Cuba lagi sekejap.
+                    @if (auth()->user()?->is_owner || \App\Support\Impersonation::active())
+                        <span class="note-sub"><strong>Nota pemilik:</strong> {{ $loadError }}</span>
+                        <span class="note-sub">Semak META_ACCESS_TOKEN dan META_PAGE_ID dalam .env.</span>
+                    @endif
                 </div>
             @elseif ($posts === [])
                 <p class="hint mt-2">Tiada posting bergambar dijumpai di Page ni.</p>
@@ -42,13 +42,14 @@
                         @php $on = $this->isSelected($post['id']); @endphp
                         <button type="button" wire:key="post-{{ $post['id'] }}"
                                 wire:click="toggle('{{ $post['id'] }}')"
-                                class="card overflow-hidden p-0 text-left transition {{ $on ? 'ring-2 ring-offset-0' : '' }}"
-                                @style(['outline: 2px solid rgb(var(--brand)); outline-offset: -2px' => $on])>
+                                class="card overflow-hidden p-0 text-left transition active:scale-[0.99]"
+                                @style(['outline: 3px solid rgb(var(--primary)); outline-offset: -3px' => $on])
+                                aria-pressed="{{ $on ? 'true' : 'false' }}">
                             <div class="relative">
                                 <img src="{{ $post['full_picture'] }}" alt=""
                                      class="aspect-square w-full object-cover">
                                 @if ($on)
-                                    <span class="absolute right-1.5 top-1.5 flex h-6 w-6 items-center justify-center rounded-full bg-dyno-gradient text-xs font-bold text-white">&check;</span>
+                                    <span class="absolute right-1.5 top-1.5 flex h-6 w-6 items-center justify-center rounded-full text-xs font-bold" style="background-color: rgb(var(--primary)); color: rgb(var(--on-primary))">&check;</span>
                                 @endif
                             </div>
                             <div class="space-y-1 p-2.5">
@@ -80,7 +81,7 @@
         <div>
             <span class="label">Kawasan</span>
 
-            <div class="mt-2 flex flex-wrap gap-2">
+            <div class="mt-2.5 flex flex-wrap gap-2">
                 <button type="button" wire:click="clearRegions"
                         class="chip {{ $regionKeys === [] ? 'chip-on' : '' }}">
                     Seluruh Malaysia
@@ -100,11 +101,11 @@
                     iklan pergi ke seluruh Malaysia (tidak termasuk Sabah, Sarawak dan Labuan).
                 </p>
             @else
-                <div class="mt-2 rounded-xl border border-amber-500/30 bg-amber-500/10 p-3 text-xs leading-relaxed text-amber-800 dark:text-amber-200/90">
+                <div class="mt-2 note note-warn text-xs">
                     Senarai negeri tidak dapat ditarik dari Meta, jadi buat masa ni iklan pergi ke
                     seluruh Malaysia sahaja.
-                    @if ($regionError)
-                        <span class="mt-1.5 block break-words text-amber-700/80 dark:text-amber-200/60">Sebab: {{ $regionError }}</span>
+                    @if ($regionError && (auth()->user()?->is_owner || \App\Support\Impersonation::active()))
+                        <span class="note-sub"><strong>Nota pemilik:</strong> {{ $regionError }}</span>
                     @endif
                 </div>
             @endif
@@ -121,15 +122,15 @@
                     </button>
                 @endforeach
             </div>
-            <input type="number" wire:model.live="budgetRm" min="10" max="200" class="field mt-2">
+            <label class="sr-only" for="budgetRm">Bajet sehari dalam RM</label>
+            <input id="budgetRm" type="number" wire:model.live="budgetRm" min="10" max="200" class="field mt-2.5">
             @error('budgetRm') <p class="err">{{ $message }}</p> @enderror
 
             @if (count($selected))
-                <div class="card mt-3 flex items-center justify-between p-3.5">
+                <div class="card mt-3 flex items-center justify-between p-4">
                     <span class="text-xs t-muted">{{ count($selected) }} iklan &times; RM{{ $budgetRm }}</span>
-                    <span class="text-base font-bold">
-                        <span class="gradient-text">RM{{ $this->totalDailyRm() }}</span>
-                        <span class="text-xs font-medium t-faint">/hari</span>
+                    <span class="text-lg font-extrabold tabular-nums t-primary">
+                        RM{{ $this->totalDailyRm() }}<span class="text-xs font-semibold t-faint"> /hari</span>
                     </span>
                 </div>
             @endif

@@ -9,11 +9,14 @@ use App\Models\Business;
 use App\Services\ImageProcessor;
 use App\Services\Meta\MetaCredentials;
 use App\Services\MetaAdsService;
+use App\Support\Impersonation;
 use App\Support\Media;
 use App\Support\Uploads;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\ValidationException;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
 use Livewire\Component;
@@ -73,6 +76,30 @@ class Create extends Component
     public array $regions = [];
 
     public ?string $regionError = null;
+
+    /**
+     * Langkah semasa. Peraturan #10: satu skrin satu keputusan.
+     *
+     * Borang ini dahulu satu skrin panjang dengan lapan soalan. Ia kini empat
+     * langkah, tetapi tetap SATU komponen dan SATU save() — langkah hanya
+     * menentukan apa yang dipapar, bukan apa yang disahkan atau disimpan.
+     */
+    public int $step = 1;
+
+    /** Medan yang disahkan pada setiap langkah sebelum boleh ke hadapan. */
+    protected const STEP_FIELDS = [
+        1 => ['media'],
+        2 => ['businessId', 'businessName', 'businessDescription'],
+        3 => ['problem', 'offer'],
+        4 => ['phone', 'regionKeys', 'regionKeys.*', 'budgetRm'],
+    ];
+
+    public const STEP_TITLES = [
+        1 => 'Gambar atau video',
+        2 => 'Bisnes',
+        3 => 'Mesej iklan',
+        4 => 'Kawasan dan bajet',
+    ];
 
     public function mount(MetaAdsService $meta): void
     {
@@ -231,11 +258,62 @@ class Create extends Component
         return max($this->creativeCount(), 1) * $this->budgetRm;
     }
 
+    public function next(): void
+    {
+        if ($this->step === 1 && $this->media === []) {
+            $this->addError('media', 'Tambah sekurang-kurangnya satu gambar atau video.');
+
+            return;
+        }
+
+        $fields = self::STEP_FIELDS[$this->step] ?? [];
+        $this->validate(array_intersect_key($this->rules(), array_flip($fields)));
+
+        $this->step = min($this->step + 1, count(self::STEP_FIELDS));
+    }
+
+    public function back(): void
+    {
+        $this->resetErrorBag();
+        $this->step = max($this->step - 1, 1);
+    }
+
+    /** Langkah yang memegang medan ini — untuk melompat ke ralat pertama. */
+    protected function stepFor(string $field): int
+    {
+        foreach (self::STEP_FIELDS as $step => $fields) {
+            foreach ($fields as $candidate) {
+                if ($field === $candidate || str_starts_with($field, rtrim($candidate, '*'))) {
+                    return $step;
+                }
+            }
+        }
+
+        return $this->step;
+    }
+
+    /**
+     * Nota teknikal pelayan (had php.ini, token Meta) — untuk pemilik sahaja.
+     * Peniaga tidak boleh membetulkannya, jadi ia hanya menakutkan mereka.
+     */
+    public function showsServerNotes(): bool
+    {
+        return Auth::user()?->is_owner === true || Impersonation::active();
+    }
+
     public function save(ImageProcessor $processor)
     {
-        $this->validate();
+        try {
+            $this->validate();
+        } catch (ValidationException $e) {
+            // Ralat mungkin pada langkah yang sudah dilepasi — bawa peniaga ke sana.
+            $this->step = $this->stepFor((string) array_key_first($e->errors()));
+
+            throw $e;
+        }
 
         if ($this->media === []) {
+            $this->step = 1;
             $this->addError('media', 'Tambah sekurang-kurangnya satu gambar atau video.');
 
             return null;
@@ -245,6 +323,7 @@ class Create extends Component
 
         // Global scope: id bisnes peniaga lain tidak dijumpai, sama seperti tidak wujud.
         if ($this->businessId !== null && $business === null) {
+            $this->step = 2;
             $this->addError('businessId', 'Bisnes tu tak dijumpai. Pilih semula.');
 
             return null;
