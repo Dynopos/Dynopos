@@ -9,6 +9,10 @@ use Illuminate\Support\Facades\Http;
 beforeEach(function () {
     Http::preventStrayRequests();
     Cache::flush();
+
+    // Page "new Pages experience" mahu token Page untuk /posts. Service
+    // menukar token System User kepada token Page dahulu.
+    Http::fake(['*/377330642350146?fields=access_token*' => Http::response(['access_token' => 'PAGE_TOKEN', 'id' => '377330642350146'])]);
 });
 
 function pagePostsBody(array $data, ?string $after = null): array
@@ -106,7 +110,43 @@ it('menyimpan dalam cache supaya Graph API dipanggil sekali sahaja', function ()
     $service->listPosts();
     $service->listPosts();
 
-    Http::assertSentCount(1);
+    // Satu tukaran token Page + satu senarai posting. Panggilan kedua dari cache.
+    Http::assertSentCount(2);
+});
+
+it('membaca posting dengan token Page, bukan token System User', function () {
+    Http::fake(['*/posts*' => Http::response(pagePostsBody([]))]);
+
+    app(PagePostService::class)->listPosts();
+
+    Http::assertSent(fn (Request $r) => str_contains($r->url(), '/377330642350146?')
+        && $r->data()['fields'] === 'access_token'
+        && $r->data()['access_token'] === 'TEST_TOKEN');
+
+    Http::assertSent(fn (Request $r) => str_contains($r->url(), '/posts')
+        && $r->data()['access_token'] === 'PAGE_TOKEN');
+});
+
+it('jatuh balik ke token asal bila Meta tidak memberi token Page', function () {
+    Http::fake([
+        '*fields=access_token*' => Http::response(['error' => ['message' => 'no', 'code' => 200]], 400),
+        '*/posts*' => Http::response(pagePostsBody([])),
+    ]);
+
+    // Page lain: fake token Page dalam beforeEach hanya untuk 377330642350146.
+    (new PagePostService(token: 'TEST_TOKEN', pageId: '999'))->listPosts();
+
+    Http::assertSent(fn (Request $r) => str_contains($r->url(), '/999/posts')
+        && $r->data()['access_token'] === 'TEST_TOKEN');
+});
+
+it('token Page tidak disimpan dalam cache — peraturan #8', function () {
+    Http::fake(['*/posts*' => Http::response(pagePostsBody([]))]);
+
+    app(PagePostService::class)->listPosts();
+
+    expect(serialize(Cache::get('dynoads.page_posts.377330642350146.'.config('dynoads.page_posts.per_page').'.first')))
+        ->not->toContain('PAGE_TOKEN');
 });
 
 it('membuang ralat Graph API tanpa mendedahkan token — peraturan #8', function () {

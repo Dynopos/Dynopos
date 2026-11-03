@@ -25,6 +25,16 @@ use Illuminate\Support\Facades\Http;
  */
 class PagePostService
 {
+    /**
+     * Token Page, ditukar daripada token System User pada panggilan pertama.
+     *
+     * Page "new Pages experience" menolak /{page}/posts dengan token System
+     * User ("A Page access token is required for this call"). Token Page
+     * hanya hidup dalam memori untuk satu permintaan — tidak pernah ke cache,
+     * DB atau log (peraturan mutlak #8). false = sudah dicuba, tiada.
+     */
+    protected string|false|null $pageToken = null;
+
     public function __construct(
         protected ?string $token = null,
         protected ?string $pageId = null,
@@ -132,12 +142,39 @@ class PagePostService
     /** Satu-satunya laluan HTTP dalam kelas ini, dan ia GET. */
     protected function get(string $path, array $query): array
     {
+        return $this->fetch($path, $query, $this->readToken());
+    }
+
+    protected function fetch(string $path, array $query, string $token): array
+    {
         $response = $this->request()->get($this->url($path), array_filter(
-            $query + ['access_token' => $this->token],
+            $query + ['access_token' => $token],
             fn ($value) => $value !== null && $value !== '',
         ));
 
         return $this->unwrap($response, $path);
+    }
+
+    /**
+     * Token Page kalau Meta memberinya, kalau tidak token asal.
+     *
+     * Token asal kekal sebagai fallback kerana ia mungkin sudah pun token
+     * Page (sambungan lama), atau Page klasik yang masih menerima token
+     * System User. Ralat sebenar, kalau ada, akan datang dari panggilan
+     * posting itu sendiri dengan mesej Meta yang jelas.
+     */
+    protected function readToken(): string
+    {
+        if ($this->pageToken === null) {
+            try {
+                $body = $this->fetch((string) $this->pageId, ['fields' => 'access_token'], (string) $this->token);
+                $this->pageToken = filled($body['access_token'] ?? null) ? (string) $body['access_token'] : false;
+            } catch (MetaApiException) {
+                $this->pageToken = false;
+            }
+        }
+
+        return $this->pageToken ?: (string) $this->token;
     }
 
     protected function request(): PendingRequest
