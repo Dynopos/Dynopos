@@ -1,42 +1,69 @@
+/* Figtree dihos sendiri — tiada permintaan ke pelayan font pihak ketiga (PDPA). */
+@import '@fontsource-variable/figtree/wght.css';
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 /*
-| Satu set token, dua tema. Setiap komponen di bawah merujuk pemboleh ubah ini,
-| jadi Blade tidak perlu tahu tema mana yang aktif — tiada kelas dark: bertaburan
-| dalam view, dan skrin baharu sepadan secara automatik.
+| Rupa "Lapisan".
 |
-| Gradien logo (biru → ungu → magenta) kekal sama pada kedua-dua tema; ia cukup
-| pekat untuk dibaca atas putih mahupun atas gelap.
+| Tiga lapisan, dari belakang ke depan:
+|   1. Latar lavender (--bg) — header dan logo duduk di sini.
+|   2. Helaian putih (--sheet) — setiap skrin ialah satu helaian bucu bulat.
+|   3. Kad lembut (--soft) — kumpulan dalam helaian, tanpa sempadan atau bayang.
+|
+| Warna jenama ialah SATU ungu padu (--primary). Gradien logo kekal pada logo
+| sahaja: bila semua benda berwarna-warni, tiada apa yang menonjol, dan butang
+| yang patut ditekan hilang dalam bunyi bising.
+|
+| Satu set token, dua tema. Blade tidak perlu tahu tema mana yang aktif.
 */
 @layer base {
     :root {
-        --bg: 250 248 255;
-        --bg-glow: rgba(139, 63, 214, 0.14);
-        --surface: 255 255 255;
-        --surface-soft: 248 246 253;
-        --border: 20 16 42;
-        --border-alpha: 0.1;
-        --text: 20 16 42;
-        --muted: 91 84 112;
-        --faint: 139 132 158;
-        --field: 255 255 255;
-        --shadow: 0 1px 2px rgba(20, 16, 42, 0.06), 0 8px 24px -12px rgba(139, 63, 214, 0.35);
+        --bg: 236 234 246;
+        --sheet: 255 255 255;
+        --soft: 246 245 251;
+        --line: 27 23 54;
+        --line-alpha: 0.08;
+        --text: 27 23 54;
+        --muted: 102 98 128;
+        --faint: 140 136 164;
+        --field: 246 245 251;
+        --primary: 91 75 214;
+        --primary-soft: 238 235 253;
+        --primary-ink: 70 58 170;
+        --on-primary: 255 255 255;
+        --warn-bg: 255 246 230;
+        --warn-ink: 138 76 6;
+        --ok-bg: 230 247 238;
+        --ok-ink: 18 110 70;
+        --err-bg: 254 236 238;
+        --err-ink: 176 32 54;
+        --sheet-shadow: 0 -1px 0 rgb(27 23 54 / 0.04), 0 -18px 40px -24px rgb(91 75 214 / 0.45);
     }
 
     .dark {
-        --bg: 10 7 21;
-        --bg-glow: rgba(139, 63, 214, 0.35);
-        --surface: 255 255 255;
-        --surface-soft: 24 17 46;
-        --border: 255 255 255;
-        --border-alpha: 0.1;
-        --text: 255 255 255;
-        --muted: 168 162 186;
-        --faint: 122 116 140;
-        --field: 18 12 34;
-        --shadow: 0 0 0 1px rgba(139, 63, 214, 0.35), 0 8px 32px -8px rgba(230, 36, 143, 0.45);
+        --bg: 12 10 24;
+        --sheet: 22 19 40;
+        --soft: 32 28 56;
+        --line: 255 255 255;
+        --line-alpha: 0.08;
+        --text: 242 240 250;
+        --muted: 172 166 196;
+        --faint: 126 120 152;
+        --field: 32 28 56;
+        --primary: 142 128 255;
+        --primary-soft: 42 36 82;
+        --primary-ink: 204 196 255;
+        --on-primary: 16 12 36;
+        --warn-bg: 58 40 14;
+        --warn-ink: 250 200 130;
+        --ok-bg: 14 50 36;
+        --ok-ink: 128 226 176;
+        --err-bg: 64 18 30;
+        --err-ink: 255 170 184;
+        --sheet-shadow: 0 -1px 0 rgb(255 255 255 / 0.04), 0 -18px 40px -24px rgb(142 128 255 / 0.35);
     }
 
     html {
@@ -49,32 +76,52 @@
 
     body {
         background-color: rgb(var(--bg));
-        background-image: radial-gradient(120% 80% at 50% 0%, var(--bg-glow) 0%, rgb(var(--bg) / 0) 70%);
-        background-repeat: no-repeat;
-        background-size: 100% 520px;
         color: rgb(var(--text));
+        font-family: theme('fontFamily.sans');
+    }
+
+    h1, h2, h3 {
+        text-wrap: balance;
+    }
+
+    :focus-visible {
+        outline: 2px solid rgb(var(--primary));
+        outline-offset: 2px;
     }
 }
 
 @layer components {
-    /* Permukaan: putih pekat pada mod terang, kaca lut sinar pada mod gelap. */
-    .card {
-        @apply rounded-2xl;
-        background-color: rgb(var(--surface) / var(--surface-opacity, 1));
-        border: 1px solid rgb(var(--border) / var(--border-alpha));
-        box-shadow: var(--shadow);
+    /* Lapisan 2: helaian tempat setiap skrin duduk. */
+    .sheet {
+        @apply rounded-t-[28px];
+        background-color: rgb(var(--sheet));
+        box-shadow: var(--sheet-shadow);
     }
 
-    .dark .card {
-        --surface-opacity: 0.04;
-        box-shadow: none;
+    .page-title {
+        @apply text-[26px] font-extrabold leading-[1.15] tracking-tight;
+    }
+
+    .page-lead {
+        @apply mt-1.5 text-sm leading-relaxed;
+        color: rgb(var(--muted));
+    }
+
+    /* Lapisan 3: kumpulan dalam helaian. Isian lembut, tiada sempadan, tiada bayang. */
+    .card {
+        @apply rounded-[20px];
+        background-color: rgb(var(--soft));
     }
 
     .field {
-        @apply w-full rounded-xl p-3.5 text-[15px] focus:outline-none focus:ring-2;
+        @apply w-full rounded-2xl border-2 border-transparent p-3.5 text-[15px] transition-colors focus:outline-none;
         background-color: rgb(var(--field));
-        border: 1px solid rgb(var(--border) / var(--border-alpha));
         color: rgb(var(--text));
+    }
+
+    /* Medan dalam kad lembut naik satu lapisan, supaya tidak hilang dalam kad. */
+    .card .field {
+        background-color: rgb(var(--sheet));
     }
 
     .field::placeholder {
@@ -82,12 +129,12 @@
     }
 
     .field:focus {
-        border-color: theme('colors.dyno.purple');
-        --tw-ring-color: rgb(139 63 214 / 0.25);
+        border-color: rgb(var(--primary));
+        background-color: rgb(var(--sheet));
     }
 
     .label {
-        @apply block text-sm font-semibold;
+        @apply block text-sm font-bold;
         color: rgb(var(--text));
     }
 
@@ -99,87 +146,139 @@
         color: rgb(var(--faint));
     }
 
+    .t-primary {
+        color: rgb(var(--primary));
+    }
+
     .hint {
         @apply mt-1.5 text-xs leading-relaxed;
         color: rgb(var(--faint));
     }
 
     .err {
-        @apply mt-1.5 text-xs text-rose-500;
+        @apply mt-1.5 text-xs font-medium;
+        color: rgb(var(--err-ink));
     }
 
-    .dark .err {
-        @apply text-rose-400;
-    }
-
+    /* Satu butang utama setiap skrin: ungu padu, bulat penuh. */
     .btn-primary {
-        @apply w-full rounded-xl bg-dyno-gradient px-4 py-4 text-base font-bold text-white
-               transition active:scale-[0.99] disabled:opacity-50;
-        box-shadow: 0 6px 24px -8px rgba(230, 36, 143, 0.6);
+        @apply w-full rounded-full px-5 py-4 text-base font-bold transition active:scale-[0.99] disabled:opacity-50;
+        background-color: rgb(var(--primary));
+        color: rgb(var(--on-primary));
+        box-shadow: 0 10px 24px -12px rgb(var(--primary) / 0.8);
     }
 
     .btn-ghost {
-        @apply w-full rounded-xl px-4 py-3 text-sm font-semibold transition active:scale-[0.99];
-        background-color: rgb(var(--surface-soft));
-        border: 1px solid rgb(var(--border) / calc(var(--border-alpha) + 0.05));
-        color: rgb(var(--text));
+        @apply w-full rounded-full px-5 py-3 text-sm font-bold transition active:scale-[0.99] disabled:opacity-50;
+        background-color: rgb(var(--primary-soft));
+        color: rgb(var(--primary-ink));
     }
 
-    .dark .btn-ghost {
-        background-color: rgb(255 255 255 / 0.04);
+    .btn-link {
+        @apply text-sm font-bold underline-offset-4 hover:underline;
+        color: rgb(var(--primary));
     }
 
     .chip {
-        @apply rounded-xl px-3 py-2.5 text-sm font-semibold transition;
-        background-color: rgb(var(--surface-soft));
-        border: 1px solid rgb(var(--border) / calc(var(--border-alpha) + 0.05));
-        color: rgb(var(--muted));
-    }
-
-    .dark .chip {
-        background-color: rgb(255 255 255 / 0.04);
+        @apply rounded-full px-3.5 py-2 text-sm font-bold transition active:scale-95;
+        background-color: rgb(var(--primary-soft));
+        color: rgb(var(--primary-ink));
     }
 
     .chip-on {
-        @apply border-transparent bg-dyno-gradient text-white;
-        box-shadow: 0 4px 16px -6px rgba(230, 36, 143, 0.6);
+        background-color: rgb(var(--primary));
+        color: rgb(var(--on-primary));
     }
 
     .stat {
-        @apply rounded-2xl p-3;
-        background-color: rgb(var(--surface) / var(--surface-opacity, 1));
-        border: 1px solid rgb(var(--border) / var(--border-alpha));
-        box-shadow: var(--shadow);
-    }
-
-    .dark .stat {
-        --surface-opacity: 0.04;
-        box-shadow: none;
+        @apply rounded-[18px] p-3;
+        background-color: rgb(var(--soft));
     }
 
     .stat-label {
-        @apply text-[10px] font-semibold uppercase tracking-wider;
+        @apply text-[10px] font-bold uppercase tracking-[0.1em];
         color: rgb(var(--faint));
     }
 
     .stat-value {
-        @apply mt-1 text-lg font-bold;
+        @apply mt-1 text-lg font-extrabold tabular-nums;
         color: rgb(var(--text));
     }
 
     .divide-hair > * + * {
-        border-top: 1px solid rgb(var(--border) / calc(var(--border-alpha) * 0.6));
+        border-top: 1px solid rgb(var(--line) / var(--line-alpha));
     }
 
-    /* Butang ikon dalam header — mesti gelap dalam mod gelap, bukan bulatan putih. */
     .icon-btn {
-        @apply flex h-9 w-9 items-center justify-center rounded-xl transition active:scale-95;
-        background-color: rgb(var(--surface-soft));
-        border: 1px solid rgb(var(--border) / calc(var(--border-alpha) + 0.02));
+        @apply flex h-9 w-9 items-center justify-center rounded-full transition active:scale-95;
+        background-color: rgb(var(--sheet));
         color: rgb(var(--text));
     }
 
+    /* Nota keadaan. Warna semantik, berasingan daripada warna jenama. */
+    .note {
+        @apply rounded-2xl p-3.5 leading-relaxed;
+    }
+
+    .note-warn {
+        background-color: rgb(var(--warn-bg));
+        color: rgb(var(--warn-ink));
+    }
+
+    .note-ok {
+        background-color: rgb(var(--ok-bg));
+        color: rgb(var(--ok-ink));
+    }
+
+    .note-err {
+        background-color: rgb(var(--err-bg));
+        color: rgb(var(--err-ink));
+    }
+
+    .note-sub {
+        @apply mt-1.5 block opacity-80;
+    }
+
+    .pill {
+        @apply inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-bold;
+    }
+
+    .pill-ok {
+        background-color: rgb(var(--ok-bg));
+        color: rgb(var(--ok-ink));
+    }
+
+    .pill-err {
+        background-color: rgb(var(--err-bg));
+        color: rgb(var(--err-ink));
+    }
+
+    .pill-idle {
+        background-color: rgb(var(--primary-soft));
+        color: rgb(var(--primary-ink));
+    }
+
+    /* Bar kemajuan langkah. */
+    .steps {
+        @apply flex gap-1.5;
+    }
+
+    .steps > span {
+        @apply h-1 flex-1 rounded-full;
+        background-color: rgb(var(--primary-soft));
+    }
+
+    .steps > span.on {
+        background-color: rgb(var(--primary));
+    }
+
+    /* Nombor yang menjadi titik utama — kini ungu padu, bukan gradien. */
     .gradient-text {
+        color: rgb(var(--primary));
+    }
+
+    /* Gradien jenama tinggal pada logo sahaja. */
+    .brand-text {
         @apply bg-dyno-gradient bg-clip-text text-transparent;
     }
 }

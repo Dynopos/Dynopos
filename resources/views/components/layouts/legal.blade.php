@@ -19,31 +19,33 @@
             document.documentElement.classList.toggle('dark', gelap);
         })();
     </script>
-    <meta name="theme-color" content="#faf8ff" media="(prefers-color-scheme: light)">
-    <meta name="theme-color" content="#0a0715" media="(prefers-color-scheme: dark)">
+    <meta name="theme-color" content="#eceaf6" media="(prefers-color-scheme: light)">
+    <meta name="theme-color" content="#0c0a18" media="(prefers-color-scheme: dark)">
 
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
 <body class="h-full antialiased">
     <div class="mx-auto flex min-h-full w-full max-w-2xl flex-col">
-        <header class="px-5 pb-2 pt-5">
+        <header class="px-5 pb-4 pt-5">
             <a href="{{ url('/') }}" class="flex items-center gap-2.5">
                 <img src="{{ asset('img/logo.png') }}" alt="" class="h-9 w-9 shrink-0">
                 <span class="text-base font-extrabold tracking-tight">
-                    <span class="gradient-text">DYNO</span><span>ADS</span>
+                    <span class="brand-text">DYNO</span> ADS
                 </span>
             </a>
         </header>
 
-        <main class="flex-1 px-5 pb-20 pt-4 leading-relaxed">
-            <h1 class="text-2xl font-extrabold tracking-tight">{{ $title }}</h1>
-            {{ $slot }}
-        </main>
+        <div class="sheet mx-2.5 flex flex-1 flex-col">
+            <main class="flex-1 px-5 pb-16 pt-6 leading-relaxed sm:px-8">
+                <h1 class="page-title">{{ $title }}</h1>
+                {{ $slot }}
+            </main>
 
-        <footer class="flex flex-wrap gap-x-4 gap-y-1 px-5 pb-10 text-xs t-faint">
-            <a href="{{ route('privasi') }}" class="underline">Notis Privasi</a>
-            <a href="{{ route('terma') }}" class="underline">Terma Perkhidmatan</a>
-        </footer>
+            <footer class="flex flex-wrap gap-x-4 gap-y-1 px-5 pb-10 text-xs t-faint sm:px-8">
+                <a href="{{ route('privasi') }}" class="underline">Notis Privasi</a>
+                <a href="{{ route('terma') }}" class="underline">Terma Perkhidmatan</a>
+            </footer>
+        </div>
     </div>
 </body>
 </html>

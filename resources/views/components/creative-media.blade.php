@@ -24,13 +24,13 @@
         terjejas — Meta memegang salinannya sendiri. Katakan sebabnya; kotak
         kosong tanpa penjelasan akan jadi tiket support.
     --}}
-    <div class="{{ $class }} flex flex-col items-center justify-center gap-1 border border-dashed border-current/20 px-2 text-center text-[10px] leading-tight t-faint">
+    <div class="{{ $class }} flex flex-col items-center justify-center gap-1 rounded-2xl px-2 text-center text-[10px] leading-tight t-faint" style="background-color: rgb(var(--primary-soft))">
         <span>Gambar dibuang</span>
         <span>selepas {{ config('dynoads.privacy.retention_days') }} hari</span>
     </div>
 @else
     {{-- Variant posting sedia ada sebelum gambarnya disalin. --}}
-    <div class="{{ $class }} flex items-center justify-center border border-dashed border-current/20 text-xs t-faint">
+    <div class="{{ $class }} flex items-center justify-center rounded-2xl text-xs t-faint" style="background-color: rgb(var(--primary-soft))">
         Tiada pratonton
     </div>
 @endif

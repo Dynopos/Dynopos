@@ -1,6 +1,6 @@
 <div>
-    <h1 class="text-2xl font-extrabold tracking-tight">Sambung akaun Meta</h1>
-    <p class="hint mt-1">
+    <h1 class="page-title">Sambung akaun Meta</h1>
+    <p class="page-lead">
         Iklan dibuat atas akaun iklan dan Page anda sendiri. Lead sampai terus ke WhatsApp anda.
     </p>
 
@@ -103,4 +103,13 @@
             Kami semak dengan Meta dulu sebelum simpan. Tiada iklan dibuat masa ni.
         </p>
     </form>
+
+    {{-- Log keluar dipindah dari header ke sini, supaya header kekal ringkas. --}}
+    <div class="mt-8 flex items-center justify-between gap-3 border-t pt-5" style="border-color: rgb(var(--line) / var(--line-alpha))">
+        <span class="min-w-0 truncate text-sm t-muted">{{ auth()->user()->name }} &middot; {{ auth()->user()->email }}</span>
+        <form method="POST" action="{{ route('keluar') }}" class="shrink-0">
+            @csrf
+            <button type="submit" class="btn-link">Log keluar</button>
+        </form>
+    </div>
 </div>

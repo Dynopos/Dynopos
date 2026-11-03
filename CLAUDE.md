@@ -27,6 +27,9 @@ Pengguna pertama: DynoPOS (pemilik repo).
 - **Urus pelanggan — SIAP.** /pelanggan: pemilik urus akaun pelanggan (Partner Access)
   tanpa log keluar, pinjam token System User `.env`, dan persetujuan bertulis wajib
   sebelum sebarang panggilan Meta (`ConsentMissing`). Lihat README.
+- **Rupa "Lapisan" — SIAP.** Token warna + komponen dalam `resources/css/app.css`;
+  `/buat` 4 langkah; nota teknikal untuk pemilik sahaja. Jangan guna warna Tailwind
+  mentah atau `bg-dyno-gradient` dalam view — gradien untuk logo sahaja.
 - Fasa 2 seterusnya: **rekod `hook`** — sudut copy mana yang menang, bukan hanya nombor.
 - Satu PR satu fasa. Jangan gabung.
 

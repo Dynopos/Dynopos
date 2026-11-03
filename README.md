@@ -245,6 +245,21 @@ Pagar:
 **Belum disahkan:** sama ada had Development access Marketing API menyekat laluan
 Partner Access untuk akaun orang lain. Uji dengan satu pelanggan sebenar dahulu.
 
+## Rupa "Lapisan"
+
+Tiga lapisan: latar lavender (logo, butang akaun) → helaian putih bucu bulat (satu
+skrin) → kad lembut tanpa sempadan. Warna jenama ialah satu ungu padu; gradien logo
+kekal pada logo sahaja. Semua warna ialah token dalam `resources/css/app.css` —
+Blade guna kelas komponen (`card`, `field`, `chip`, `btn-primary`, `note-warn`,
+`pill-ok`…), bukan warna Tailwind mentah.
+
+- Font Figtree dihos sendiri (`@fontsource-variable/figtree`) — tiada pelayan font
+  pihak ketiga, jadi notis privasi tidak berubah.
+- `/buat` ialah 4 langkah (media → bisnes → mesej → kawasan & bajet), satu komponen,
+  satu `save()`. Ralat pada langkah awal membawa peniaga kembali ke langkah itu.
+- Nota teknikal pelayan (had php.ini, token Meta) hanya dipapar kepada pemilik.
+- Log keluar dipindah ke skrin akaun (`/sambung`), supaya header kekal ringkas.
+
 ## Test
 
 ```bash

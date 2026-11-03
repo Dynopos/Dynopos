@@ -1,6 +1,6 @@
 <div>
-    <h1 class="text-2xl font-extrabold tracking-tight">Pelanggan</h1>
-    <p class="hint mt-1">
+    <h1 class="page-title">Pelanggan</h1>
+    <p class="page-lead">
         Peniaga yang iklannya anda urus. Bajet dicaj terus ke kad mereka oleh Meta —
         anda tak pegang kad atau password Facebook mereka.
     </p>

@@ -10,7 +10,7 @@
     </p>
 
     @unless ($lengkap)
-        <div class="mt-5 rounded-xl border border-amber-500/40 bg-amber-500/10 p-4 text-sm leading-relaxed text-amber-900 dark:text-amber-200">
+        <div class="mt-5 note note-warn text-sm">
             <p class="font-bold">Notis ini belum lengkap.</p>
             <p class="mt-1.5">
                 Butiran syarikat belum ditetapkan. Seksyen 7 Akta 709 mewajibkan notis ini menamakan

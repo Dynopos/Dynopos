@@ -8,6 +8,9 @@ export default {
     ],
     theme: {
         extend: {
+            fontFamily: {
+                sans: ['"Figtree Variable"', 'Figtree', 'ui-sans-serif', 'system-ui', '-apple-system', 'Segoe UI', 'sans-serif'],
+            },
             colors: {
                 // Diambil dari logo Dyno Ads: biru → ungu → magenta atas kromium.
                 ink: {

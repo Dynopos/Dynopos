@@ -1,8 +1,8 @@
 <div>
-    <h1 class="text-2xl font-extrabold tracking-tight">Masuk</h1>
-    <p class="hint mt-1">Iklan anda, akaun anda sendiri.</p>
+    <h1 class="page-title">Masuk</h1>
+    <p class="page-lead">Iklan anda, akaun anda sendiri.</p>
 
-    <form wire:submit="masuk" class="card mt-5 space-y-4">
+    <form wire:submit="masuk" class="mt-6 space-y-4">
         <div>
             <label class="label" for="email">Emel</label>
             <input id="email" type="email" inputmode="email" autocomplete="email"
@@ -18,7 +18,7 @@
         </div>
 
         <label class="flex items-center gap-2.5 text-sm t-muted">
-            <input type="checkbox" wire:model="remember" class="h-4 w-4 rounded">
+            <input type="checkbox" wire:model="remember" class="h-4 w-4 rounded" style="accent-color: rgb(var(--primary))">
             Ingat saya
         </label>
 
@@ -30,6 +30,6 @@
 
     <p class="mt-5 text-center text-sm t-muted">
         Belum ada akaun?
-        <a href="{{ route('daftar') }}" wire:navigate class="font-semibold underline">Daftar</a>
+        <a href="{{ route('daftar') }}" wire:navigate class="btn-link">Daftar</a>
     </p>
 </div>
