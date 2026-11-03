@@ -37,6 +37,16 @@
 
             <div class="flex items-center gap-2">
             @auth
+                @if (auth()->user()->is_owner)
+                    <a href="{{ route('clients.index') }}" wire:navigate class="icon-btn" aria-label="Pelanggan" title="Pelanggan">
+                        <svg class="h-[18px] w-[18px]" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                             stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                            <circle cx="9" cy="7" r="4"/>
+                            <path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/>
+                        </svg>
+                    </a>
+                @endif
                 <a href="{{ route('meta.connect') }}" wire:navigate class="icon-btn" aria-label="Sambungan akaun Meta"
                    title="{{ auth()->user()->name }}">
                     <svg class="h-[18px] w-[18px]" viewBox="0 0 24 24" fill="none" stroke="currentColor"
@@ -73,6 +83,16 @@
             </button>
             </div>
         </header>
+
+        {{-- Jelas setiap masa: iklan yang dibuat sekarang belanja duit pelanggan ini. --}}
+        @if ($pemilikAsal = \App\Support\Impersonation::owner())
+            <form method="POST" action="{{ route('clients.return') }}"
+                  class="mx-5 mt-2 flex items-center justify-between gap-3 rounded-2xl bg-amber-100 px-4 py-3 text-sm text-amber-900 dark:bg-amber-950/60 dark:text-amber-200">
+                @csrf
+                <span>Anda sedang urus <strong>{{ auth()->user()->name }}</strong></span>
+                <button type="submit" class="shrink-0 font-semibold underline">Kembali</button>
+            </form>
+        @endif
 
         <main class="flex-1 px-5 pb-24 pt-3">
             {{ $slot }}

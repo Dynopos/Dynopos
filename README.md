@@ -219,6 +219,32 @@ menyerahkan semua baris yang belum bertuan kepadanya.
 Token disimpan berenkripsi (`APP_KEY`). Ia tidak pernah dipapar semula selepas
 disimpan, dan tidak pernah masuk ke dalam log atau mesej ralat — peraturan mutlak #8.
 
+## Urus iklan pelanggan (servis, sebelum App Review)
+
+Pemilik boleh mengurus iklan peniaga lain dari akaunnya sendiri, tanpa log keluar.
+
+1. Pelanggan beri **Partner Access** (Page + ad account) kepada Business Manager
+   DynoPOS, dan tambah kad bank dalam ad account mereka sendiri.
+2. Pemilik **Assign Assets** kepada System User yang token-nya dalam `.env`.
+3. `/pelanggan` → **Tambah pelanggan** → **Urus**. Banner kuning menunjukkan
+   akaun siapa yang sedang diurus; **Kembali** pulang ke akaun pemilik.
+4. Di `/sambung`, tanda **Guna token System User DynoPOS**, isi ad account, Page
+   dan nombor WhatsApp pelanggan. Token tidak disalin — tukar `META_ACCESS_TOKEN`
+   sekali, semua pelanggan ikut.
+5. **Rekod persetujuan** (contoh: "Balas Setuju di WhatsApp 3 Nov").
+   Sebelum itu, tiada kredential untuk pelanggan tersebut dan tiada panggilan Meta.
+
+Pagar:
+- Hanya pemilik (`is_owner`, disemak semula dari DB setiap permintaan) boleh mengurus
+  akaun lain atau meminjam token `.env`.
+- Pelanggan yang menyambung sendiri kemudian berhenti meminjam token pemilik.
+- `auto_actions` merekod `oleh_pemilik_id` bila pemilik menekan butang bagi pihak pelanggan.
+- Pengasingan Fasa 7a tidak diubah: semasa mengurus, pemilik nampak tepat apa yang
+  pelanggan nampak.
+
+**Belum disahkan:** sama ada had Development access Marketing API menyekat laluan
+Partner Access untuk akaun orang lain. Uji dengan satu pelanggan sebenar dahulu.
+
 ## Test
 
 ```bash

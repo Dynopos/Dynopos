@@ -9,7 +9,9 @@ use App\Livewire\AdSets\Run;
 use App\Livewire\Auth\Login;
 use App\Livewire\Auth\Register;
 use App\Livewire\Businesses\Confirm;
+use App\Livewire\Clients\Index as Clients;
 use App\Livewire\Settings\Connect;
+use App\Support\Impersonation;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
@@ -59,6 +61,17 @@ Route::middleware('auth')->group(function () {
     });
 
     Route::get('/sambung', Connect::class)->name('meta.connect');
+
+    // Servis urus iklan: pemilik masuk sebagai pelanggan tanpa log keluar.
+    Route::get('/pelanggan', Clients::class)->middleware('owner')->name('clients.index');
+
+    // Bukan di belakang `owner` — semasa mengurus, user yang log masuk ialah
+    // pelanggan. Impersonation::stop() sendiri yang mengesahkan pemilik asal.
+    Route::post('/pelanggan/kembali', function () {
+        return Impersonation::stop()
+            ? redirect()->route('clients.index')
+            : redirect()->route('ad-sets.create');
+    })->name('clients.return');
 
     Route::post('/keluar', function (Request $request) {
         Auth::logout();

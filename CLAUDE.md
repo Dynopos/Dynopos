@@ -24,6 +24,9 @@ Pengguna pertama: DynoPOS (pemilik repo).
 - **Pembersihan media — SIAP.** `dynoads:prune-media` harian. Hidupkan Scheduler di Forge.
 - **Analisis bisnes — SIAP.** /buat → /bisnes/{id} (AI Amir terangkan bisnes, peniaga sahkan)
   → /semak. Sebab: caption oksigen untuk bisnes sewa skylift semasa demo. Peraturan #14.
+- **Urus pelanggan — SIAP.** /pelanggan: pemilik urus akaun pelanggan (Partner Access)
+  tanpa log keluar, pinjam token System User `.env`, dan persetujuan bertulis wajib
+  sebelum sebarang panggilan Meta (`ConsentMissing`). Lihat README.
 - Fasa 2 seterusnya: **rekod `hook`** — sudut copy mana yang menang, bukan hanya nombor.
 - Satu PR satu fasa. Jangan gabung.
 

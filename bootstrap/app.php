@@ -2,6 +2,7 @@
 
 use App\Exceptions\MetaCredentialsMissing;
 use App\Http\Middleware\EnsureMetaConnected;
+use App\Http\Middleware\EnsureOwner;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -26,6 +27,7 @@ return Application::configure(basePath: dirname(__DIR__))
 
         $middleware->alias([
             'meta.connected' => EnsureMetaConnected::class,
+            'owner' => EnsureOwner::class,
         ]);
 
         // EnsureMetaConnected mesti berjalan SEBELUM SubstituteBindings.

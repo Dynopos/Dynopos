@@ -23,6 +23,7 @@ class FbConnection extends Model
     protected $fillable = [
         'user_id', 'token', 'ad_account_id', 'page_id', 'page_name',
         'wa_phone', 'meta_user_id', 'expires_at', 'status', 'last_error', 'verified_at',
+        'uses_owner_token', 'managed_by_user_id', 'consented_at', 'consent_note',
     ];
 
     protected $hidden = ['token'];
@@ -33,12 +34,35 @@ class FbConnection extends Model
             'token' => 'encrypted',
             'expires_at' => 'datetime',
             'verified_at' => 'datetime',
+            'uses_owner_token' => 'boolean',
+            'consented_at' => 'datetime',
         ];
     }
 
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    public function managedBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'managed_by_user_id');
+    }
+
+    /** Disediakan oleh pemilik bagi pihak pelanggan (servis urus iklan). */
+    public function isManaged(): bool
+    {
+        return $this->managed_by_user_id !== null;
+    }
+
+    /**
+     * Sambungan yang diurus pemilik tidak boleh dipakai tanpa persetujuan
+     * bertulis pelanggan. Sambungan yang peniaga buat sendiri tidak perlu —
+     * dia sendiri yang menekan butang.
+     */
+    public function needsConsent(): bool
+    {
+        return $this->isManaged() && $this->consented_at === null;
     }
 
     public function isActive(): bool

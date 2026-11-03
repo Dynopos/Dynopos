@@ -6,6 +6,7 @@ use App\Exceptions\MetaApiException;
 use App\Models\FbConnection;
 use App\Services\Meta\MetaCredentials;
 use App\Services\MetaAdsService;
+use App\Support\Impersonation;
 use App\Support\Phone;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Facades\Auth;
@@ -38,13 +39,21 @@ class Connect extends Component
 
     public string $waPhone = '';
 
+    /**
+     * Pemilik yang mengurus pelanggan: guna token System User dari .env.
+     * Diabaikan sepenuhnya bila bukan pemilik yang mengurus — lihat sambung().
+     */
+    public bool $useOwnerToken = true;
+
+    public string $consentNote = '';
+
     public ?string $ralat = null;
 
     public ?string $berjaya = null;
 
     public function mount(): void
     {
-        $connection = Auth::user()?->fbConnection;
+        $connection = Auth::user()?->fbConnection()->first();
 
         if ($connection instanceof FbConnection) {
             // Token TIDAK diisi semula ke dalam borang. Peraturan mutlak #8:
@@ -60,8 +69,15 @@ class Connect extends Component
         $this->ralat = null;
         $this->berjaya = null;
 
+        $owner = Impersonation::owner();
+
+        // Hanya pemilik yang sedang mengurus boleh meminjam token .env. Tanpa
+        // pagar ini, peniaga biasa boleh menghala token System User kita ke
+        // mana-mana ad account yang ia capai — termasuk akaun pelanggan lain.
+        $borrowOwnerToken = $owner !== null && $this->useOwnerToken;
+
         $data = $this->validate([
-            'token' => ['required', 'string', 'min:40'],
+            'token' => $borrowOwnerToken ? ['nullable', 'string'] : ['required', 'string', 'min:40'],
             'adAccountId' => ['required', 'string'],
             'pageId' => ['required', 'string'],
             'waPhone' => ['required', 'string'],
@@ -81,8 +97,16 @@ class Connect extends Component
             return;
         }
 
+        $token = $borrowOwnerToken ? (string) config('dynoads.meta.token') : trim((string) $data['token']);
+
+        if ($token === '') {
+            $this->ralat = 'META_ACCESS_TOKEN dalam .env kosong. Isi dulu, atau tampal token pelanggan.';
+
+            return;
+        }
+
         $candidate = new MetaCredentials(
-            token: trim($data['token']),
+            token: $token,
             adAccountId: MetaCredentials::normaliseAccountId(trim($data['adAccountId'])),
             pageId: trim($data['pageId']),
             waPhone: $phone,
@@ -106,7 +130,10 @@ class Connect extends Component
         FbConnection::updateOrCreate(
             ['user_id' => Auth::id()],
             [
-                'token' => $candidate->token,
+                // Bila token .env dipinjam, tiada salinan disimpan.
+                'token' => $borrowOwnerToken ? null : $candidate->token,
+                'uses_owner_token' => $borrowOwnerToken,
+                'managed_by_user_id' => $owner?->id,
                 'ad_account_id' => $candidate->adAccountId,
                 'page_id' => $candidate->pageId,
                 'page_name' => $nama['page'],
@@ -119,6 +146,43 @@ class Connect extends Component
 
         $this->token = '';
         $this->berjaya = "Siap. Akaun iklan \"{$nama['ad_account']}\" dan Page \"{$nama['page']}\" dah disambung.";
+
+        if (Auth::user()->fbConnection()->first()?->needsConsent()) {
+            $this->berjaya .= ' Langkah terakhir: rekod persetujuan pelanggan di bawah.';
+        }
+    }
+
+    /**
+     * Rekod persetujuan bertulis pelanggan — pemilik sahaja, semasa mengurus.
+     *
+     * Bukti disimpan sebagai teks (contohnya "Balas Setuju di WhatsApp 3 Nov")
+     * supaya bila ada pertikaian tentang belanja, ada sesuatu untuk dirujuk.
+     */
+    public function rekodPersetujuan(): void
+    {
+        $this->ralat = null;
+        $this->berjaya = null;
+
+        $connection = Auth::user()?->fbConnection()->first();
+
+        if (Impersonation::owner() === null || ! $connection instanceof FbConnection || ! $connection->isManaged()) {
+            $this->ralat = 'Persetujuan hanya direkod oleh pemilik untuk pelanggan yang diurus.';
+
+            return;
+        }
+
+        $note = trim($this->consentNote);
+
+        if (mb_strlen($note) < 5) {
+            $this->addError('consentNote', 'Tulis bukti persetujuan, contohnya: "Balas Setuju di WhatsApp 3 Nov".');
+
+            return;
+        }
+
+        $connection->update(['consented_at' => now(), 'consent_note' => mb_substr($note, 0, 500)]);
+
+        $this->consentNote = '';
+        $this->berjaya = 'Persetujuan direkod. Iklan untuk pelanggan ni boleh dibuat sekarang.';
     }
 
     /**
@@ -142,7 +206,8 @@ class Connect extends Component
     public function render()
     {
         return view('livewire.settings.connect', [
-            'connection' => Auth::user()?->fbConnection,
+            'connection' => Auth::user()?->fbConnection()->first(),
+            'pemilik' => Impersonation::owner(),
         ]);
     }
 }
