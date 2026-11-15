@@ -164,3 +164,84 @@ it('membuang ralat Graph API tanpa mendedahkan token — peraturan #8', function
             ->and($e->errorCode)->toBe(190);
     }
 });
+
+// ------------------------------------- tanpa pages_read_user_content (#10)
+
+function permissionError(): array
+{
+    return ['error' => [
+        'message' => "(#10) This endpoint requires the 'pages_read_user_content' permission or the 'Page Public Content Access' feature.",
+        'code' => 10,
+    ]];
+}
+
+function onePost(): array
+{
+    return pagePostsBody([[
+        'id' => '377330642350146_101',
+        'message' => 'Posting dengan gambar',
+        'full_picture' => 'https://scontent.example/1.jpg',
+        'created_time' => '2026-09-01T08:00:00+0000',
+        'reactions' => ['summary' => ['total_count' => 40]],
+    ]]);
+}
+
+it('cuba semula tanpa kiraan komen bila Meta tolak atas sebab permission', function () {
+    Http::fake(['*/posts*' => Http::sequence()
+        ->push(permissionError(), 400)
+        ->push(onePost())]);
+
+    $post = app(PagePostService::class)->listPosts()['posts'][0];
+
+    expect($post['reactions'])->toBe(40)
+        ->and($post['comments'])->toBeNull()
+        ->and($post['full_picture'])->toBe('https://scontent.example/1.jpg');
+
+    Http::assertSent(fn (Request $r) => str_contains($r->url(), '/posts')
+        && ! str_contains($r->data()['fields'], 'comments')
+        && str_contains($r->data()['fields'], 'reactions.summary(true)'));
+});
+
+it('jatuh ke medan asas bila reaksi pun ditolak', function () {
+    Http::fake(['*/posts*' => Http::sequence()
+        ->push(permissionError(), 400)
+        ->push(permissionError(), 400)
+        ->push(onePost())]);
+
+    $post = app(PagePostService::class)->listPosts()['posts'][0];
+
+    expect($post['reactions'])->toBeNull()
+        ->and($post['comments'])->toBeNull()
+        ->and($post['shares'])->toBeNull()
+        ->and($post['excerpt'])->toBe('Posting dengan gambar');
+});
+
+it('ralat yang bukan permission tidak dicuba semula', function () {
+    Http::fake(['*/posts*' => Http::response([
+        'error' => ['message' => 'Invalid OAuth access token.', 'code' => 190],
+    ], 400)]);
+
+    expect(fn () => app(PagePostService::class)->listPosts())->toThrow(MetaApiException::class);
+
+    // Satu tukaran token Page + satu cubaan posting. Tiada cubaan kedua.
+    Http::assertSentCount(2);
+});
+
+it('cuba published_posts bila /posts ditolak sepenuhnya', function () {
+    Http::fake([
+        '*/published_posts*' => Http::response(onePost()),
+        '*/posts*' => Http::response(permissionError(), 400),
+    ]);
+
+    $posts = app(PagePostService::class)->listPosts()['posts'];
+
+    expect($posts)->toHaveCount(1)
+        ->and($posts[0]['comments'])->toBeNull();
+});
+
+it('ralat permission pada semua laluan tetap dipapar', function () {
+    Http::fake(['*posts*' => Http::response(permissionError(), 400)]);
+
+    expect(fn () => app(PagePostService::class)->listPosts())
+        ->toThrow(MetaApiException::class, 'pages_read_user_content');
+});

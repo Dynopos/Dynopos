@@ -55,7 +55,10 @@
                             <div class="space-y-1 p-2.5">
                                 <p class="line-clamp-2 text-xs leading-relaxed">{{ $post['excerpt'] ?: 'Tiada teks' }}</p>
                                 <p class="text-[11px] t-faint">
-                                    {{ $post['reactions'] }} reaksi &middot; {{ $post['comments'] }} komen
+                                    {{ collect([
+                                        $post['reactions'] !== null ? $post['reactions'].' reaksi' : null,
+                                        $post['comments'] !== null ? $post['comments'].' komen' : null,
+                                    ])->filter()->implode(' · ') ?: 'Posting Page' }}
                                 </p>
                                 <p class="text-[11px] t-faint">
                                     {{ \Illuminate\Support\Carbon::parse($post['created_time'])->diffForHumans() }}

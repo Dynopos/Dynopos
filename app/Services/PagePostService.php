@@ -60,27 +60,11 @@ class PagePostService
         $ttl = now()->addMinutes((int) config('dynoads.page_posts.cache_minutes'));
 
         return Cache::remember($key, $ttl, function () use ($limit, $after) {
-            $body = $this->get("{$this->pageId}/posts", [
-                'fields' => implode(',', [
-                    'id',
-                    'message',
-                    'full_picture',
-                    'permalink_url',
-                    'created_time',
-                    'shares',
-                    'reactions.summary(true)',
-                    'comments.summary(true)',
-                ]),
-                // Minta lebih daripada yang diperlukan: posting tanpa gambar
-                // ditapis keluar selepas ini, jadi tanpa lebihan satu halaman
-                // boleh pulang hampir kosong.
-                'limit' => min($limit * 2, 100),
-                'after' => $after,
-            ]);
+            [$body, $fields] = $this->fetchPosts($limit, $after);
 
             $posts = collect(data_get($body, 'data', []))
                 ->filter(fn (array $post) => filled(data_get($post, 'full_picture')))
-                ->map(fn (array $post) => $this->normalise($post))
+                ->map(fn (array $post) => $this->normalise($post, $fields))
                 ->take($limit)
                 ->values()
                 ->all();
@@ -93,6 +77,66 @@ class PagePostService
     }
 
     /**
+     * Medan yang diminta, dari paling lengkap ke paling asas.
+     *
+     * Kiraan komen memerlukan pages_read_user_content, yang token pelanggan
+     * belum tentu ada (dan mungkin perlu App Review). Gambar dan teks posting
+     * — yang sebenarnya diperlukan untuk membuat iklan — tidak memerlukannya.
+     * Jadi bila Meta menolak atas sebab permission, kita minta lebih sedikit,
+     * bukan menggagalkan seluruh skrin.
+     */
+    protected const FIELD_TIERS = [
+        ['posts', ['shares', 'reactions.summary(true)', 'comments.summary(true)']],
+        ['posts', ['shares', 'reactions.summary(true)']],
+        ['posts', []],
+        // Hanya posting yang Page sendiri terbitkan — yang memang kita mahu.
+        // Sesetengah Page menolak /posts tanpa pages_read_user_content tetapi
+        // membenarkan edge ini.
+        ['published_posts', []],
+    ];
+
+    protected const BASE_FIELDS = ['id', 'message', 'full_picture', 'permalink_url', 'created_time'];
+
+    /** @return array{0: array, 1: array<int, string>} badan respons dan medan yang berjaya */
+    protected function fetchPosts(int $limit, ?string $after): array
+    {
+        foreach (self::FIELD_TIERS as $i => [$edge, $extra]) {
+            $fields = [...self::BASE_FIELDS, ...$extra];
+
+            try {
+                $body = $this->get("{$this->pageId}/{$edge}", [
+                    'fields' => implode(',', $fields),
+                    // Minta lebih daripada yang diperlukan: posting tanpa gambar
+                    // ditapis keluar selepas ini, jadi tanpa lebihan satu halaman
+                    // boleh pulang hampir kosong.
+                    'limit' => min($limit * 2, 100),
+                    'after' => $after,
+                ]);
+
+                return [$body, $fields];
+            } catch (MetaApiException $e) {
+                $isLastTier = $i === array_key_last(self::FIELD_TIERS);
+
+                if ($isLastTier || ! $this->isPermissionError($e)) {
+                    throw $e;
+                }
+            }
+        }
+
+        throw new \LogicException('FIELD_TIERS tidak boleh kosong.');
+    }
+
+    /** (#10) / (#200): token tiada permission untuk medan yang diminta. */
+    protected function isPermissionError(MetaApiException $e): bool
+    {
+        $message = mb_strtolower($e->getMessage());
+
+        return in_array($e->errorCode, [10, 200], true)
+            || str_contains($message, 'pages_read_user_content')
+            || str_contains($message, 'page public content access');
+    }
+
+    /**
      * Satu posting. Diperlukan oleh laluan fallback, yang memerlukan gambar
      * dan teks posting untuk disalin menjadi creative baharu.
      */
@@ -102,7 +146,7 @@ class PagePostService
             'fields' => 'id,message,full_picture,permalink_url,created_time',
         ]);
 
-        return filled(data_get($body, 'id')) ? $this->normalise($body) : null;
+        return filled(data_get($body, 'id')) ? $this->normalise($body, self::BASE_FIELDS) : null;
     }
 
     public function forget(): void
@@ -122,8 +166,15 @@ class PagePostService
      * apabila nilainya sifar, jadi setiap satu perlukan lalai — bukan null,
      * kerana skrin memaparkannya sebagai nombor.
      */
-    protected function normalise(array $post): array
+    protected function normalise(array $post, array $fields): array
     {
+        // Medan yang tidak diminta jadi null ("tak diketahui"), bukan 0.
+        // Meta tinggalkan medan bila nilainya sifar, jadi 0 hanya bermakna
+        // sifar bila medan itu memang diminta.
+        $count = fn (string $field, string $path) => in_array($field, $fields, true)
+            ? (int) data_get($post, $path, 0)
+            : null;
+
         $message = (string) data_get($post, 'message', '');
 
         return [
@@ -133,9 +184,9 @@ class PagePostService
             'full_picture' => data_get($post, 'full_picture'),
             'permalink_url' => data_get($post, 'permalink_url'),
             'created_time' => data_get($post, 'created_time'),
-            'reactions' => (int) data_get($post, 'reactions.summary.total_count', 0),
-            'comments' => (int) data_get($post, 'comments.summary.total_count', 0),
-            'shares' => (int) data_get($post, 'shares.count', 0),
+            'reactions' => $count('reactions.summary(true)', 'reactions.summary.total_count'),
+            'comments' => $count('comments.summary(true)', 'comments.summary.total_count'),
+            'shares' => $count('shares', 'shares.count'),
         ];
     }
 
